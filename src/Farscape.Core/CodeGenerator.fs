@@ -2,7 +2,6 @@ namespace Farscape.Core
 
 open System
 open System.Text
-open System.Runtime.InteropServices
 
 /// Module to generate F# code for bindings
 module CodeGenerator =

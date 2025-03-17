@@ -6,13 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="ProjectOptions.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="CppParser.fs" />
     <Compile Include="TypeMapper.fs" />
     <Compile Include="MemoryManager.fs" />
     <Compile Include="DelegatePointer.fs" />
     <Compile Include="CodeGenerator.fs" />
-    <Compile Include="ProjectOptions.fs" />
     <Compile Include="Project.fs" />
     <Compile Include="BindingGenerator.fs" />
   </ItemGroup>

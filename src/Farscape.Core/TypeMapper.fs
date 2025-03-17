@@ -5,9 +5,7 @@ open System.Collections.Generic
 open System.Runtime.InteropServices
 open System.Text.RegularExpressions
 
-/// Module to map C++ types to F# types
 module TypeMapper =
-    /// Type mapping information
     type TypeMapping = {
         OriginalName: string
         FSharpName: string
@@ -19,7 +17,6 @@ module TypeMapper =
         ArrayLength: int option
     }
     
-    /// Basic C++ to F# type mapping table
     let private typeMap = 
         dict [
             // Primitive types
@@ -61,32 +58,26 @@ module TypeMapper =
             "const wchar_t*", "string"
         ]
     
-    /// Check if a type is a primitive type
     let isPrimitiveType (typeName: string) =
         typeMap.ContainsKey(typeName) || 
         typeName.EndsWith("*") && typeMap.ContainsKey(typeName)
     
-    /// Check if a type is a pointer type
     let isPointerType (typeName: string) =
         typeName.Contains("*") || typeName.EndsWith("&")
-    
-    /// Check if a type is a const type
+
     let isConstType (typeName: string) =
         typeName.StartsWith("const ") || typeName.Contains(" const")
-    
-    /// Check if a type is an array type
+
     let isArrayType (typeName: string) =
         typeName.Contains("[") && typeName.Contains("]")
-    
-    /// Get array length from type name
+
     let getArrayLength (typeName: string) =
         let match' = Regex.Match(typeName, @"\[(\d+)\]")
         if match'.Success then
             Some(Int32.Parse(match'.Groups.[1].Value))
         else
             None
-    
-    /// Clean up type name
+
     let cleanTypeName (typeName: string) =
         typeName
             .Replace("const ", "")
@@ -98,8 +89,7 @@ module TypeMapper =
             .Replace("enum ", "")
             .Replace("union ", "")
             .Trim()
-    
-    /// Get F# type for C++ type
+
     let getFSharpType (cppType: string) : string =
         let cleaned = cleanTypeName cppType
         
@@ -113,10 +103,8 @@ module TypeMapper =
             else
                 "nativeint"
         else
-            // Custom type, preserve the name
             cleaned
-    
-    /// Get MarshalAs attribute for a C++ type
+
     let getMarshalAs (cppType: string) : MarshalAsAttribute option =
         let marshalType = 
             if cppType.Contains("char*") || cppType.Contains("const char*") then
@@ -129,8 +117,7 @@ module TypeMapper =
                 None
                 
         marshalType |> Option.map (fun t -> MarshalAsAttribute(t))
-    
-    /// Map a C++ type to a F# type mapping
+
     let mapType (cppType: string) : TypeMapping =
         {
             OriginalName = cppType
@@ -142,8 +129,7 @@ module TypeMapper =
             IsArray = isArrayType cppType
             ArrayLength = getArrayLength cppType
         }
-    
-    /// Map C++ declarations to F# type mappings
+
     let mapTypes (declarations: CppParser.Declaration list) : TypeMapping list =
         let rec collectTypes (decls: CppParser.Declaration list) =
             let mutable types = []

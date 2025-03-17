@@ -1,8 +1,6 @@
 namespace Farscape.Core
 
-/// Common types used across the library
 module Types =
-    /// Status code for operations
     type OperationStatus =
         | Success = 0
         | Error = 1

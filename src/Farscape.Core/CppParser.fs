@@ -1,10 +1,8 @@
 ﻿namespace Farscape.Core
 
-open CppSharp
 open CppSharp.Parser
 open CppSharp.AST
 
-/// Module to handle C++ parsing with CppSharp/LibClang
 module CppParser =
     /// Represents a C++ function declaration
     type FunctionDecl = {
@@ -16,28 +14,24 @@ module CppParser =
         IsStatic: bool 
     }
 
-    /// Represents a C++ struct declaration
     type StructDecl = {
         Name: string
         Fields: (string * string) list
         Documentation: string option 
     }
 
-    /// Represents a C++ enum declaration
     type EnumDecl = {
         Name: string
         Values: (string * uint64) list
         Documentation: string option 
     }
 
-    /// Represents a C++ typedef declaration
     type TypedefDecl = {
         Name: string
         UnderlyingType: string
         Documentation: string option 
     }
 
-    /// Forward declaration for circular references
     type Declaration = 
         | Function of FunctionDecl
         | Struct of StructDecl
@@ -46,13 +40,11 @@ module CppParser =
         | Namespace of NamespaceDecl
         | Class of ClassDecl
 
-    /// Represents a C++ namespace declaration
     and NamespaceDecl = {
         Name: string
         Declarations: Declaration list 
     }
 
-    /// Represents a C++ class declaration
     and ClassDecl = {
         Name: string
         Methods: Declaration list
@@ -61,7 +53,6 @@ module CppParser =
         IsAbstract: bool 
     }
 
-    /// Visits declarations and collects them as our custom Declaration type
     type DeclarationVisitor() =
         inherit AstVisitor()
     
@@ -136,14 +127,12 @@ module CppParser =
                 })
             true
 
-    /// Parser options
     type HeaderParserOptions = {
         HeaderFile: string
         IncludePaths: string list
         Verbose: bool
     }
 
-    /// Parse a C++ header file using CppSharp/LibClang
     let parseHeader (options: HeaderParserOptions) =
         let parserOptions = new ParserOptions()
         
@@ -170,7 +159,7 @@ module CppParser =
             
         visitor.GetDeclarations()
     
-    /// Parse a C++ header
+
     let parse headerFile includePaths verbose =
         let options = {
             HeaderFile = headerFile

@@ -4,9 +4,8 @@ open System
 open System.Runtime.InteropServices
 open System.Runtime.CompilerServices
 
-/// Module for handling memory management and pinning
 module MemoryManager =
-    /// Generate code for pinned allocation of struct array
+
     let generatePinnedStructArray (structName: string) (elementSize: int) =
         $"""
 /// Allocates a pinned array of {structName} on the pinned object heap
@@ -15,23 +14,20 @@ let allocatePinned{structName}Array (count: int) : {structName}[] =
     array
         """
         
-    /// Generate code for getting a pointer to a pinned array
     let generateGetPinnedArrayPointer (structName: string) =
         $"""
 /// Gets a pointer to the first element of a pinned {structName} array
 let get{structName}ArrayPointer (array: {structName}[]) : nativeint =
     GCHandle.Alloc(array, GCHandleType.Pinned).AddrOfPinnedObject()
         """
-        
-    /// Generate code for memory marshaling
+
     let generateMemoryCast (sourceType: string) (targetType: string) =
         $"""
 /// Cast a Span<{sourceType}> to a Span<{targetType}>
 let cast{sourceType}To{targetType} (source: Span<{sourceType}>) : Span<{targetType}> =
     MemoryMarshal.Cast<{sourceType}, {targetType}>(source)
         """
-        
-    /// Generate code for a fixed statement equivalent in F#
+
     let generateFixedStatement (structName: string) =
         $"""
 /// Performs an operation with a fixed pointer to a {structName}
@@ -44,16 +40,14 @@ let fixed{structName} (value: {structName}) (action: nativeint -> 'T) : 'T =
     finally
         handle.Free()
         """
-        
-    /// Generate code for creating a Span from a pointer
+
     let generateSpanFromPointer (structName: string) =
         $"""
 /// Creates a Span<{structName}> from a pointer and length
 let spanFrom{structName}Pointer (ptr: nativeint) (length: int) : Span<{structName}> =
     MemoryMarshal.CreateSpan(ref Unsafe.AsRef<{structName}>(ptr.ToPointer()), length)
         """
-        
-    /// Generate code for freeing native memory
+
     let generateFreeNativeMemory =
         """
 /// Frees memory allocated with Marshal.AllocHGlobal
@@ -61,16 +55,14 @@ let freeNativeMemory (ptr: nativeint) : unit =
     if ptr <> IntPtr.Zero then
         Marshal.FreeHGlobal(ptr)
         """
-        
-    /// Generate code for allocating native memory
+
     let generateAllocateNativeMemory =
         """
 /// Allocates memory using Marshal.AllocHGlobal
 let allocateNativeMemory (size: int) : nativeint =
     Marshal.AllocHGlobal(size)
         """
-        
-    /// Generate code for copying to native memory
+
     let generateCopyToNativeMemory (structName: string) =
         $"""
 /// Copies a {structName} to native memory
@@ -80,16 +72,14 @@ let copyToNativeMemory (value: {structName}) : nativeint =
     Marshal.StructureToPtr(value, ptr, false)
     ptr
         """
-        
-    /// Generate code for copying from native memory
+
     let generateCopyFromNativeMemory (structName: string) =
         $"""
 /// Copies a {structName} from native memory
 let copyFromNativeMemory (ptr: nativeint) : {structName} =
     Marshal.PtrToStructure<{structName}>(ptr)
         """
-        
-    /// Generate code for using Marshal with an array of structs
+
     let generateMarshalStructArray (structName: string) =
         $"""
 /// Copies an array of {structName} to native memory
@@ -104,8 +94,7 @@ let marshalStructArray (array: {structName}[]) : nativeint =
         
     ptr
         """
-        
-    /// Generate the entire memory management module for a set of struct types
+
     let generateMemoryManagement (structTypes: string list) =
         let sb = System.Text.StringBuilder()
         

@@ -4,25 +4,20 @@ open System
 open System.Text
 open System.Runtime.InteropServices
 
-/// Module for handling delegate pointers and callbacks
 module DelegatePointer =
-    /// Represents a function pointer signature
     type FunctionPointerSignature = {
         ReturnType: string
         ParameterTypes: string list
         CallingConvention: CallingConvention
     }
     
-    /// Represents a delegate type definition
     type DelegateTypeDefinition = {
         Name: string
         Signature: FunctionPointerSignature
         Documentation: string option
     }
     
-    /// Extract function pointer signature from a C++ type
     let extractFunctionPointerSignature (cppType: string) : FunctionPointerSignature option =
-        // Function pointer pattern: return_type (*)(param1, param2, ...)
         let pattern = @"([\w\s\*]+)\s*\(\*\)\s*\(([\w\s\*,]*)\)"
         let regex = System.Text.RegularExpressions.Regex(pattern)
         let match' = regex.Match(cppType)
@@ -47,7 +42,6 @@ module DelegatePointer =
         else
             None
     
-    /// Generate a delegate type declaration for a function pointer
     let generateDelegateType (signature: FunctionPointerSignature) (name: string) (documentation: string option) =
         let parameters = 
             signature.ParameterTypes
@@ -74,15 +68,12 @@ module DelegatePointer =
         
         $"{docComment}[<UnmanagedFunctionPointer(CallingConvention.{callingConvention})>]\ntype {name} = delegate of {parameters} -> {returnType}"
     
-    /// Generate a function to wrap a managed delegate as a function pointer
     let generateDelegateWrapper (delegateType: string) =
         $"let wrap{delegateType} (func: {delegateType}) : nativeint =\n    Marshal.GetFunctionPointerForDelegate(func) |> nativeint"
     
-    /// Generate a function to unwrap a function pointer to a managed delegate
     let generateDelegateUnwrapper (delegateType: string) =
         $"let unwrap{delegateType} (ptr: nativeint) : {delegateType} =\n    Marshal.GetDelegateForFunctionPointer(ptr, typeof<{delegateType}>) :?> {delegateType}"
     
-    /// Identify function pointer types in declarations
     let identifyFunctionPointers (declarations: CppParser.Declaration list) : DelegateTypeDefinition list =
         let rec processDeclarations (decls: CppParser.Declaration list) =
             let mutable delegates = []
@@ -135,20 +126,17 @@ module DelegatePointer =
     
         processDeclarations declarations
         
-    /// Generate delegate type declarations for function pointers
     let generateDelegateTypes (functionPointers: DelegateTypeDefinition list) =
         functionPointers
         |> List.map (fun fp -> 
             generateDelegateType fp.Signature fp.Name fp.Documentation)
         |> String.concat "\n\n"
     
-    /// Generate delegate wrapper functions
     let generateDelegateWrappers (functionPointers: DelegateTypeDefinition list) =
         functionPointers
         |> List.map (fun fp -> generateDelegateWrapper fp.Name)
         |> String.concat "\n\n"
     
-    /// Generate delegate unwrapper functions
     let generateDelegateUnwrappers (functionPointers: DelegateTypeDefinition list) =
         functionPointers
         |> List.map (fun fp -> generateDelegateUnwrapper fp.Name)

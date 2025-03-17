@@ -1,9 +1,8 @@
 ﻿module Farscape.Cli.Program
-    
+
 open System
 open System.IO
 open Farscape.Core
-open Spectre.Console
 open SpectreCoff
 
 type CommandOptions = {
@@ -63,27 +62,33 @@ let showHeader () =
 
 let showConfiguration (options: CommandOptions) =
     rule "[bold]Configuration:[/]" |> toConsole
-
     BlankLine |> toConsole
 
-    let configTable =
-        Table()
-
-    configTable.AddColumn("Setting") |> ignore
-    configTable.AddColumn("Value") |> ignore
-
-    configTable.AddRow("[yellow]Header File[/]", options.Header) |> ignore
-    configTable.AddRow("[yellow]Library Name[/]", options.Library) |> ignore
-    configTable.AddRow("[yellow]Output Directory[/]", options.Output) |> ignore
-    configTable.AddRow("[yellow]Namespace[/]", options.Namespace) |> ignore
-    configTable.AddRow(
-        "[yellow]Include Paths[/]",
-        if String.IsNullOrEmpty(options.IncludePaths) then
-            "[gray]None[/]"
-        else
-            options.IncludePaths.Replace(",", "\n")) |> ignore
-
-    configTable.RoundedBorder() |> toOutputPayload |> toConsole
+    tableWithRows [
+        [
+            "[yellow]Header File[/]"
+            options.Header
+        ]
+        [
+            "[yellow]Library Name[/]"
+            options.Library
+        ]
+        [
+            "[yellow]Output Directory[/]"
+            options.Output
+        ]
+        [
+            "[yellow]Namespace[/]"
+            options.Namespace
+        ]
+        [
+            "[yellow]Include Paths[/]"
+            if String.IsNullOrEmpty(options.IncludePaths) then
+                "[gray]None[/]"
+            else
+                options.IncludePaths.Replace(",", "\n")
+        ]
+    ] |> withRoundedBorder |> toConsole
 
 let parseIncludePaths (paths: string) =
     if String.IsNullOrWhiteSpace(paths) then []
@@ -92,7 +97,6 @@ let parseIncludePaths (paths: string) =
 let runGeneration (options: CommandOptions) =
     // Show generating message
     rule "[bold]Generating F# bindings...[/]" |> toConsole
-    
     BlankLine |> toConsole
 
     let includePaths = parseIncludePaths options.IncludePaths
@@ -107,116 +111,80 @@ let runGeneration (options: CommandOptions) =
         BindingGenerator.GenerationOptions.Verbose = options.Verbose
     }
 
-    // Use status for process steps
-    AnsiConsole.Status()
-        .Start("Processing...", fun ctx ->
-            // Execute parsing step
-            ctx.Status("[blue]Parsing C++ header...[/]") |> ignore
-            let declarations = CppParser.parse options.Header includePaths options.Verbose
+    // Process steps with appropriate messages
+    text "Starting C++ header parsing..." |> toConsole
+    let declarations = CppParser.parse options.Header includePaths options.Verbose
 
-            // Execute mapping step
-            ctx.Status("[blue]Mapping C++ types to F#...[/]") |> ignore
-            System.Threading.Thread.Sleep(1000) // Simulating work
+    text "Mapping C++ types to F#..." |> toConsole
+    System.Threading.Thread.Sleep(1000) // Simulating work
 
-            // Execute code generation step
-            ctx.Status("[blue]Generating F# code...[/]") |> ignore
-            System.Threading.Thread.Sleep(1000) // Simulating work
+    text "Generating F# code..." |> toConsole
+    System.Threading.Thread.Sleep(1000) // Simulating work
 
-            // Execute project generation
-            ctx.Status("[blue]Creating project files...[/]") |> ignore
-            BindingGenerator.generateBindings generationOptions |> ignore
+    text "Creating project files..." |> toConsole
+    BindingGenerator.generateBindings generationOptions |> ignore
 
-            // Completion
-            ctx.Status("[green]Complete![/]")
-        ) |> ignore
+    text "Generation complete!" |> toConsole
 
     // Show completion message
     rule "[green]Generation Complete[/]" |> toConsole
-
     BlankLine |> toConsole
 
     // Output info
     rule $"[bold]Output:[/] F# bindings were successfully generated in [cyan]{options.Output}[/]" |> toConsole
-    
     BlankLine |> toConsole
-
-open SpectreCoff
 
 let showNextSteps (options: CommandOptions) =
     // Show next steps
-    rule "\n[bold]Next Steps:[/]" |> toConsole
-    
+    rule "[bold]Next Steps:[/]" |> toConsole
     BlankLine |> toConsole
 
-    let tree =
-        Tree("[yellow]How to use the generated bindings:[/]")
+    let buildSteps = [
+        $"cd {options.Output}"
+        "dotnet build"
+    ]
 
-    let buildProject = tree.AddNode("[cyan]Build the project[/]")
-    buildProject.AddNode($"cd {options.Output}") |> ignore
-    buildProject.AddNode("dotnet build") |> ignore
+    let useSteps = [
+        $"Add a reference to {options.Library}.dll"
+        $"open {options.Namespace}"
+    ]
 
-    let useInProject = tree.AddNode("[cyan]Use in your own project[/]")
-    useInProject.AddNode($"Add a reference to {options.Library}.dll") |> ignore
-    useInProject.AddNode($"open {options.Namespace}") |> ignore
+    let markdownContent = sprintf """
+### How to use the generated bindings:
 
-    tree |> toOutputPayload |> toConsole
+#### Build the project
+```
+%s
+```
+
+#### Use in your own project
+```fsharp
+%s
+```
+""" (String.Join("\n", buildSteps)) (String.Join("\n", useSteps))
+markdownContent |> toConsole
 
 let showError (message: string) =
     rule $"[red]Error:[/] {message}" |> toConsole
-    
     BlankLine |> toConsole
 
 let showUsage () =
     rule "[yellow]Usage:[/] farscape [options]" |> toConsole
-
     BlankLine |> toConsole
-
     rule "[bold]Options:[/]" |> toConsole
-
     BlankLine |> toConsole
 
-    let options = {
-        Header = ""
-        Library = ""
-        Output = "./output"
-        Namespace = "NativeBindings"
-        IncludePaths = ""
-        Verbose = false
-    }
-
-    let tableColumns = [
-        "Setting"
-        "Value"
-    ]
-
-    let tableRows = [
-        ["[yellow]Header File[/]"; options.Header]
-        ["[yellow]Library Name[/]"; options.Library]
-        ["[yellow]Output Directory[/]"; options.Output]
-        ["[yellow]Namespace[/]"; options.Namespace]
-        [
-            "[yellow]Include Paths[/]"
-            if String.IsNullOrEmpty(options.IncludePaths) then
-                "[gray]None[/]"
-            else
-                options.IncludePaths.Replace(",", "\n")
-        ]
-    ]
-
-    let configTable =
-        Table()
-
-    configTable.AddColumn("Setting") |> ignore
-    configTable.AddColumn("Value") |> ignore
-
-    tableRows
-    |> List.iter (fun row ->
-        match row with
-        | setting :: value :: _ -> configTable.AddRow(setting, value) |> ignore
-        | _ -> ()
-    )
-
-    configTable.RoundedBorder() |> toOutputPayload |> toConsole
+    let markdownContent = """
+| Option | Description | Default |
+|--------|-------------|---------|
+| **-h, --header** | Path to C++ header file | *Required* |
+| **-l, --library** | Name of native library to bind to | *Required* |
+| **-o, --output** | Output directory for generated code | ./output |
+| **-n, --namespace** | Namespace for generated code | NativeBindings |
+| **-i, --include-paths** | Additional include paths (comma separated) | None |
+| **-v, --verbose** | Enable verbose output | false |
+"""
+    AnsiConsole.Write(new Markup(markdownContent))
 
 [<EntryPoint>]
 let main argv =

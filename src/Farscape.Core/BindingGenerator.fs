@@ -41,7 +41,7 @@ module BindingGenerator =
                     | CppParser.Declaration.Class c when c.Methods.IsEmpty -> yield c.Name
                     | _ -> ()
             ]
-        |> collect
+        collect declarations
         |> List.distinct
 
     /// Generate wrapper code
@@ -113,8 +113,8 @@ module BindingGenerator =
         }
 
         // Generate project files
-        ProjectgenerateProject projectOptions code
+        let (projectFile, sourceFile, readmeFile) = Project.generateProject projectOptions code
 
         // Log completion
         logVerbose "Binding generation completed successfully." options.Verbose
-        logVerbose $"""Bindings generated at: {Path.Combine(options.OutputDirectory, options.LibraryName + ".fsproj")}""" options.Verbose
+        logVerbose $"Bindings generated at: {projectFile}" options.Verbose

@@ -153,5 +153,4 @@ module DelegatePointers =
     let generateDelegateUnwrappers (functionPointers: DelegateTypeDefinition list) =
         functionPointers
         |> List.map (fun fp -> generateDelegateUnwrapper fp.Name)
-        |> String.concat "\n\n" Farscape.Core.DelegatePointer
-
+        |> String.concat "\n\n"

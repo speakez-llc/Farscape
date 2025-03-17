@@ -63,7 +63,7 @@ module CppParser =
 
     /// Visits declarations and collects them as our custom Declaration type
     type DeclarationVisitor() =
-        inherit CppSharp.AST.AstVisitor()
+        inherit AstVisitor()
     
         let declarations = ResizeArray<Declaration>()
     
@@ -71,7 +71,7 @@ module CppParser =
     
         override _.VisitDeclaration(decl: CppSharp.AST.Declaration) = true
     
-        override _.VisitFunctionDecl(func: CppSharp.AST.Function) =
+        override _.VisitFunctionDecl(func: Function) =
             let parameters =
                 func.Parameters
                 |> Seq.map (fun p -> p.Name, p.Type.ToString())
@@ -85,16 +85,16 @@ module CppParser =
                     Documentation = Option.ofObj func.Comment.BriefText
                     IsVirtual = 
                         match func with 
-                        | :? CppSharp.AST.Method as m -> m.IsVirtual 
+                        | :? Method as m -> m.IsVirtual 
                         | _ -> false
                     IsStatic = 
                         match func with
-                        | :? CppSharp.AST.Method as m -> m.IsStatic
+                        | :? Method as m -> m.IsStatic
                         | _ -> false
                 })
             true
     
-        override _.VisitClassDecl(classDecl: CppSharp.AST.Class) =
+        override _.VisitClassDecl(classDecl: Class) =
             let methodVisitor = DeclarationVisitor()
             classDecl.Methods |> Seq.iter (fun m -> methodVisitor.VisitDeclaration(m) |> ignore)
         
@@ -114,7 +114,7 @@ module CppParser =
             true
     
                
-        override _.VisitEnumDecl(enumDecl: CppSharp.AST.Enumeration) =
+        override _.VisitEnumDecl(enumDecl: Enumeration) =
             declarations.Add(
                 Enum {
                     Name = enumDecl.Name
@@ -125,7 +125,7 @@ module CppParser =
                 })
             true
     
-        override _.VisitNamespace(namespaceDecl: CppSharp.AST.Namespace) =
+        override _.VisitNamespace(namespaceDecl: Namespace) =
             let visitor = DeclarationVisitor()
             namespaceDecl.Declarations |> Seq.iter (fun d -> visitor.VisitDeclaration(d) |> ignore)
         
@@ -137,34 +137,37 @@ module CppParser =
             true
 
     /// Parser options
-    type ParserOptions = {
+    type HeaderParserOptions = {
         HeaderFile: string
         IncludePaths: string list
         Verbose: bool
     }
 
-    /// Parse a C++ header file using CppSharp/LibClang
-    /// Parser options
-    type HeaderParserOptions = {  // Renamed from ParserOptions
-        HeaderFile: string
-        IncludePaths: string list
-        Verbose: bool
-    }
-    
     /// Parse a C++ header file using CppSharp/LibClang
     let parseHeader (options: HeaderParserOptions) =
-        let parserOptions = new ParserOptions()  // Fully qualified name not needed now
-        options.IncludePaths |> List.iter parserOptions.AddIncludeDirs  // Note: AddIncludeDir not AddIncludeDirs
+        let parserOptions = new ParserOptions()
+        
+        // Add include directories
+        for includePath in options.IncludePaths do
+            parserOptions.AddIncludeDirs(includePath)
+            
         parserOptions.SetupMSVC()
-
-        use parser = new ClangParser(parserOptions)
-        let parserResult = parser.ParseHeader(options.HeaderFile)
-
-        if not parserResult.IsSuccess then
-            failwithf "Failed to parse header: %A" parserResult.Diagnostics
-
+        
+        // Create the AST context directly
+        let astContext = new ASTContext()
+        
+        // Parse the header using LibClang
+        let success = ClangParser.ParseHeader(parserOptions)
+        
+        if success.DiagnosticsCount > 0u then
+            failwith "Failed to parse header"
+        
+        // Visit the translation units
         let visitor = DeclarationVisitor()
-        parserResult.ASTContext.TranslationUnit.Visit(visitor) |> ignore  // Changed to Visit
+        
+        for unit in astContext.TranslationUnits do
+            unit.Visit(visitor) |> ignore
+            
         visitor.GetDeclarations()
     
     /// Parse a C++ header
@@ -184,23 +187,4 @@ module CppParser =
         if verbose then
             printfn "Found %d declarations" (List.length declarations)
     
-        declarations
-
-    /// Parse a C++ header
-    let parse headerFile includePaths verbose =
-        let options = {
-            HeaderFile = headerFile
-            IncludePaths = includePaths
-            Verbose = verbose
-        }
-
-        if verbose then
-            printfn "Parsing header: %s" headerFile
-            printfn "Include paths: %A" includePaths
-
-        let declarations = parseHeader options
-
-        if verbose then
-            printfn "Found %d declarations" (List.length declarations)
-
         declarations

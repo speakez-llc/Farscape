@@ -1,10 +1,12 @@
 namespace Farscape.Core
-        
+
 open System
 open System.IO
 open System.Text
+open Farscape.Core
+open Farscape.Core.ProjectOptions // Add this line
 
-/// Main module to orchestrate the binding generation process
+
 module BindingGenerator =
 
     /// Options for binding generation
@@ -13,19 +15,6 @@ module BindingGenerator =
         LibraryName: string
         OutputDirectory: string
         Namespace: string
-        IncludePaths: string list
-        Verbose: bool
-    }
-
-    /// Project options for generating the F# project file
-    type ProjectOptions = {
-        ProjectName: string
-        Namespace: string
-        OutputDirectory: string
-        References: string list
-        NuGetPackages: (string * string) list
-        HeaderFile: string
-        LibraryName: string
         IncludePaths: string list
         Verbose: bool
     }
@@ -48,11 +37,11 @@ module BindingGenerator =
     let generateWrapperCode (declarations: CppParser.Declaration list) (namespace': string) (libraryName: string) =
         let code = CodeGenerator.generateCode declarations namespace' libraryName
         let structTypes = extractStructTypes declarations
-        let functionPointers = DelegatePointers.identifyFunctionPointers declarations
+        let functionPointers = DelegatePointer.identifyFunctionPointers declarations
 
-        let delegateTypes = DelegatePointers.generateDelegateTypes functionPointers
-        let delegateWrappers = DelegatePointers.generateDelegateWrappers functionPointers
-        let delegateUnwrappers = DelegatePointers.generateDelegateUnwrappers functionPointers
+        let delegateTypes = DelegatePointer.generateDelegateTypes functionPointers
+        let delegateWrappers = DelegatePointer.generateDelegateWrappers functionPointers
+        let delegateUnwrappers = DelegatePointer.generateDelegateUnwrappers functionPointers
         let memoryManagement = MemoryManager.generateMemoryManagement structTypes
 
         let sb = StringBuilder()
@@ -74,12 +63,12 @@ module BindingGenerator =
     /// Log a message if verbose mode is enabled
     let logVerbose (message: string) (verbose: bool) =
         if verbose then
-            printfn "%s" message
+            printfn $"%s{message}"
 
     /// Generate a complete binding project
     let generateBindings (options: GenerationOptions) =
         // Create output directory
-        Directory.CreateDirectory(options.OutputDirectory)
+        Directory.CreateDirectory(options.OutputDirectory) |> ignore
 
         // Log start information
         logVerbose $"Starting binding generation for {options.HeaderFile}" options.Verbose
@@ -97,7 +86,7 @@ module BindingGenerator =
 
         // Set up project generation
         logVerbose "Creating project files..." options.Verbose
-        let projectOptions : ProjectOptions = {
+        let projectOptions : ProjectOptions.ProjectOptions = {
             ProjectName = options.LibraryName
             Namespace = options.Namespace
             OutputDirectory = options.OutputDirectory

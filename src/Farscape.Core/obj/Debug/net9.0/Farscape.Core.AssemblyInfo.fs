@@ -10,7 +10,7 @@ open System.Reflection
 [<assembly: System.Reflection.AssemblyCompanyAttribute("Farscape.Core")>]
 [<assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")>]
 [<assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")>]
-[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+30913b26891bd83bd9e419346ac4fecff24bc1e1")>]
+[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+319638344b5282ddd987a81496f471d55327d798")>]
 [<assembly: System.Reflection.AssemblyProductAttribute("Farscape.Core")>]
 [<assembly: System.Reflection.AssemblyTitleAttribute("Farscape.Core")>]
 [<assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")>]

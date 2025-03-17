@@ -5,7 +5,7 @@ open System.Text
 open System.Runtime.InteropServices
 
 /// Module for handling delegate pointers and callbacks
-module DelegatePointers =
+module DelegatePointer =
     /// Represents a function pointer signature
     type FunctionPointerSignature = {
         ReturnType: string

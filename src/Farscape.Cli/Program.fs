@@ -124,7 +124,7 @@ let runGeneration (options: CommandOptions) =
 
             // Execute project generation
             ctx.Status("[blue]Creating project files...[/]") |> ignore
-            BindingGenerator.generateBindings generationOptions
+            BindingGenerator.generateBindings generationOptions |> ignore
 
             // Completion
             ctx.Status("[green]Complete![/]")

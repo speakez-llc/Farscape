@@ -2,22 +2,24 @@ namespace Farscape.Core
         
 open System
 open System.Text
-open System.Collections.Generic
 
 module CodeGenerator =
+    type CodeSection = {
+        FileName: string
+        Content: string
+        Order: int
+    }
+    
+    type GeneratedCode = {
+        Sections: CodeSection list
+    }
+
     type BindingGeneratorOptions = {
         LibraryName: string
         Namespace: string
         IncludePaths: string list
         OutputDirectory: string
         Verbose: bool
-    }
-
-    /// Represents a generated binding section
-    type BindingSection = {
-        FileName: string
-        Content: string
-        Order: int
     }
 
     type AdvancedBindingGenerator(options: BindingGeneratorOptions) =
@@ -61,6 +63,7 @@ module CodeGenerator =
             sb.AppendLine($"module {options.Namespace}.Wrappers") |> ignore
             sb.AppendLine("open System") |> ignore
             sb.AppendLine($"open {options.Namespace}.NativeBindings") |> ignore
+            sb.AppendLine($"open {options.Namespace}.Types") |> ignore
             sb.AppendLine() |> ignore
 
             let functions =
@@ -86,7 +89,7 @@ module CodeGenerator =
                 if returnType = "int" || returnType = "int32" then
                     sb.AppendLine($"    let result = NativeBindings.{func.Name}({paramList})") |> ignore
                     sb.AppendLine("    if result < 0 then") |> ignore
-                    //sb.AppendLine($"        failwithf \"Error in {func.Name}: {result}\"") |> ignore
+                    sb.AppendLine("        failwith (\"Error in " + func.Name + ": \" + string result)") |> ignore
                     sb.AppendLine("    result") |> ignore
                 else
                     sb.AppendLine($"    NativeBindings.{func.Name}({paramList})") |> ignore
@@ -129,7 +132,7 @@ module CodeGenerator =
                 sb.AppendLine() |> ignore
 
                 sb.AppendLine("    /// Create from native memory") |> ignore
-                sb.AppendLine("    static member FromNativeMemory(ptr: nativeint) =") |> ignore
+                sb.AppendLine($"    static member FromNativeMemory(ptr: nativeint) =") |> ignore
                 sb.AppendLine($"        Marshal.PtrToStructure<{struct'.Name}Wrapper>(ptr)") |> ignore
 
                 sb.AppendLine() |> ignore
@@ -155,12 +158,6 @@ module CodeGenerator =
                 }
             ]
 
-    let generateLibraryBindings (options: BindingGeneratorOptions) =
-        let declarations = CppParser.parse options.LibraryName options.IncludePaths options.Verbose
-
-        let generator = AdvancedBindingGenerator(options)
-        generator.GenerateBindings(declarations)
-        
     /// Generate code from declarations
     let generateCode (declarations: CppParser.Declaration list) (namespace': string) (libraryName: string) =
         let options: BindingGeneratorOptions = {
@@ -172,4 +169,6 @@ module CodeGenerator =
         }
         
         let generator = AdvancedBindingGenerator(options)
-        generator.GenerateBindings(declarations)
+        let sections = generator.GenerateBindings(declarations)
+        
+        { Sections = sections }

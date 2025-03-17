@@ -3,10 +3,9 @@ namespace Farscape.Core
 open System
 open System.IO
 open System.Text
-open Farscape.Core
-open Farscape.Core.ProjectOptions // Add this line
+open Farscape.Core.ProjectOptions
 
-
+/// Module for generating F# bindings for C++ libraries
 module BindingGenerator =
 
     /// Options for binding generation
@@ -33,37 +32,10 @@ module BindingGenerator =
         collect declarations
         |> List.distinct
 
-    /// Generate wrapper code
-    let generateWrapperCode (declarations: CppParser.Declaration list) (namespace': string) (libraryName: string) =
-        let code = CodeGenerator.generateCode declarations namespace' libraryName
-        let structTypes = extractStructTypes declarations
-        let functionPointers = DelegatePointer.identifyFunctionPointers declarations
-
-        let delegateTypes = DelegatePointer.generateDelegateTypes functionPointers
-        let delegateWrappers = DelegatePointer.generateDelegateWrappers functionPointers
-        let delegateUnwrappers = DelegatePointer.generateDelegateUnwrappers functionPointers
-        let memoryManagement = MemoryManager.generateMemoryManagement structTypes
-
-        let sb = StringBuilder()
-        sb.AppendLine(code) |> ignore
-
-        let appendSection (condition: string -> bool) (header: string) (content: string) =
-            if condition content then
-                sb.AppendLine() |> ignore
-                sb.AppendLine($"// {header}") |> ignore
-                sb.AppendLine(content) |> ignore
-
-        appendSection (not << String.IsNullOrWhiteSpace) "Delegate types for function pointers" delegateTypes
-        appendSection (not << String.IsNullOrWhiteSpace) "Delegate wrapper functions" delegateWrappers
-        appendSection (not << String.IsNullOrWhiteSpace) "Delegate unwrapper functions" delegateUnwrappers
-        appendSection (not << String.IsNullOrWhiteSpace) "Memory management functions" memoryManagement
-
-        sb.ToString()
-
     /// Log a message if verbose mode is enabled
     let logVerbose (message: string) (verbose: bool) =
         if verbose then
-            printfn $"%s{message}"
+            printfn "%s" message
 
     /// Generate a complete binding project
     let generateBindings (options: GenerationOptions) =
@@ -82,11 +54,11 @@ module BindingGenerator =
 
         // Generate F# code
         logVerbose "Generating F# code..." options.Verbose
-        let code = generateWrapperCode declarations options.Namespace options.LibraryName
+        let generatedCode = CodeGenerator.generateCode declarations options.Namespace options.LibraryName
 
         // Set up project generation
         logVerbose "Creating project files..." options.Verbose
-        let projectOptions : ProjectOptions.ProjectOptions = {
+        let projectOptions : ProjectOptions = {
             ProjectName = options.LibraryName
             Namespace = options.Namespace
             OutputDirectory = options.OutputDirectory
@@ -102,8 +74,13 @@ module BindingGenerator =
         }
 
         // Generate project files
-        let (projectFile, sourceFile, readmeFile) = Project.generateProject projectOptions code
+        let (solutionPath, libraryPath, testPath) = Project.generateProject projectOptions generatedCode
 
         // Log completion
         logVerbose "Binding generation completed successfully." options.Verbose
-        logVerbose $"Bindings generated at: {projectFile}" options.Verbose
+        logVerbose $"Solution generated at: {solutionPath}" options.Verbose
+        logVerbose $"Library project generated at: {libraryPath}" options.Verbose
+        logVerbose $"Test project generated at: {testPath}" options.Verbose
+        
+        // Return paths to important generated files
+        (solutionPath, libraryPath, testPath)

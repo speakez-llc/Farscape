@@ -86,7 +86,7 @@ module DelegatePointers =
     let identifyFunctionPointers (declarations: CppParser.Declaration list) : DelegateTypeDefinition list =
         let rec processDeclarations (decls: CppParser.Declaration list) =
             let mutable delegates = []
-            
+    
             // Helper to process parameters
             let processParameters (parameters: (string * string) list) =
                 for (name, paramType) in parameters do
@@ -95,19 +95,19 @@ module DelegatePointers =
                         let delegateName = $"{name}Delegate"
                         delegates <- { Name = delegateName; Signature = signature; Documentation = None } :: delegates
                     | None -> ()
-            
+    
             for decl in decls do
                 match decl with
                 | CppParser.Declaration.Function f ->
                     processParameters f.Parameters
-                    
+    
                     // Check if return type is a function pointer
                     match extractFunctionPointerSignature f.ReturnType with
                     | Some signature ->
                         let delegateName = $"{f.Name}ReturnDelegate"
                         delegates <- { Name = delegateName; Signature = signature; Documentation = None } :: delegates
                     | None -> ()
-                    
+    
                 | CppParser.Declaration.Struct s ->
                     for (fieldName, fieldType) in s.Fields do
                         match extractFunctionPointerSignature fieldType with
@@ -115,27 +115,26 @@ module DelegatePointers =
                             let delegateName = $"{s.Name}_{fieldName}Delegate"
                             delegates <- { Name = delegateName; Signature = signature; Documentation = None } :: delegates
                         | None -> ()
-                        
+    
                 | CppParser.Declaration.Class c ->
-                    processDeclarations c.Methods
-                    
+                    processDeclarations c.Methods |> ignore
+    
                     for (fieldName, fieldType) in c.Fields do
                         match extractFunctionPointerSignature fieldType with
                         | Some signature ->
                             let delegateName = $"{c.Name}_{fieldName}Delegate"
                             delegates <- { Name = delegateName; Signature = signature; Documentation = None } :: delegates
                         | None -> ()
-                        
+    
                 | CppParser.Declaration.Namespace ns ->
                     delegates <- processDeclarations ns.Declarations @ delegates
-                    
-                | _ -> ()
-                
-            delegates
-            
-        processDeclarations declarations
-        |> List.distinctBy (fun d -> d.Name)
     
+                | _ -> ()
+    
+            List.distinctBy (fun d -> d.Name) delegates
+    
+        processDeclarations declarations
+        
     /// Generate delegate type declarations for function pointers
     let generateDelegateTypes (functionPointers: DelegateTypeDefinition list) =
         functionPointers

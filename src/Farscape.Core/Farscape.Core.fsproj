@@ -6,7 +6,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Library.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="CppParser.fs" />
+    <Compile Include="TypeMapper.fs" />
+    <Compile Include="DelegatePointers.fs" />
+    <Compile Include="MemoryManager.fs" />
+    <Compile Include="CodeGenerator.fs" />
+    <Compile Include="ProjectGenerator.fs" />
+    <Compile Include="BindingGenerator.fs" />
+    <Compile Include="DelegatePointer.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CppSharp" Version="1.0.45.22293" />
+    <PackageReference Include="FParsec" Version="1.1.1" />
   </ItemGroup>
 
 </Project>

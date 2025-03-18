@@ -24,8 +24,8 @@ Farscape is a command-line tool that aims to automatically generate idiomatic F#
   - More Demanding C++ templates could be supported by F# type providers
 - **P/Invoke Support**: Automatically creates proper P/Invoke declarations for native functions
 - **Type Mapping**: Precise numeric types __*with matching bit widths and signedness*__
-- **Project Generation**: Creates complete F# projects ready for building
-- **Documentation**: C++ documentation transferred as F# XML docs for consistent developer experience between platforms
+- **Project Generation**: 🚧 Targets the creation of complete F# projects ready for building 🚧
+- **Documentation**: C++ documentation transferred as F# XML docs for consistent developer experience in all IDEs and code editor environments.
 
 ---
 ![alt text](img/Farscape_social.png)
@@ -33,26 +33,26 @@ Farscape is a command-line tool that aims to automatically generate idiomatic F#
 ### Current Implementation
 
 We've successfully created a working implementation for cJSON.h that:
-- Manually extracts function declarations, structs, and type definitions
+- Automatically extracts function declarations, structs, and type definitions
 - Generates appropriate P/Invoke declarations with correct calling conventions
 - Maps C++ types to their F# equivalents (though with some conversion issues like char* → byte)
 - Produces usable bindings that can be incorporated into F# projects
 
-The current solution is intentionally focused on cJSON as a proof of concept, with a simplified approach.
+The current solution is intentionally focused on cJSON as a proof of concept. This simplified approach paves the way to a progressive implementation of more supported features. Eventually more complex C++ projects will be "placed on the bench" to determine how best to support more complicated APIs. The end result will eventually yield a mature tool that will cover a majority of support scenarios.
 
 ### Generalization Requirements
 
 To fulfill Farscape's vision of supporting any C++ library, the implementation needs to be generalized:
 
-1. **Create a robust header parsing system**:
-    - Enhance or replace CppSharp integration for reliable header parsing
+1. **Develop a more complex header parsing system**:
+    - Enhance CppSharp integration for more detailed and varied header parsing
     - Support standard C/C++ constructs across various library styles
     - Handle platform-specific details and preprocessor directives
 
 2. **Improve type mapping**:
     - Refine string handling (currently mapping to byte instead of proper string marshaling)
-    - Better support for complex types, structs, and templates
-    - Handle function pointers and callbacks correctly
+    - Broader support for complex types, structs, and templates
+    - Transform C++ function pointers into F# functional delegate definitions including built-in lifecycle management
 
 3. **Support diverse library patterns**:
     - Handle C-style libraries like cJSON

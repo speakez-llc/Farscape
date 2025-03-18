@@ -3,6 +3,16 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# Farscape.Cli specific output
+src/Farscape.Cli/output/
+src/Farscape.Cli/bin/
+src/Farscape.Cli/obj/
+src/Farscape.Cli/**/bin/
+src/Farscape.Cli/**/obj/
+
+# This ensures all generated files in output are ignored
+src/Farscape.Cli/output/**/*
+
 *.exe
 
 # dotenv files
@@ -35,8 +45,6 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
-**/[Bb]in/
-**/[Oo]bj/
 [Ll]og/
 [Ll]ogs/
 

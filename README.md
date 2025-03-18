@@ -59,12 +59,13 @@ To fulfill Farscape's vision of supporting any C++ library, the implementation n
     - Support C++ classes and object-oriented patterns
     - Accommodate different calling conventions and export styles
 
-4. **Generate idiomatic F# code**:
+4. **Generate precise F# code**:
     - Create proper F# modules and types that mirror C++ namespaces
     - Generate helpful documentation from header comments
     - Produce wrapper types that provide memory safety
+    - Transform C++ methods into F# functions for an idiomatic experience
 
-The existing manual approach for cJSON demonstrates the feasibility of this vision, and serves as a template for generalization to other libraries.
+The existing hybrid approach for cJSON demonstrates the feasibility of this vision, and serves as a template for generalization to other libraries.
 
 ### Path Forward
 

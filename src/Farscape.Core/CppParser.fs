@@ -73,7 +73,9 @@ module CppParser =
                     Name = func.Name
                     ReturnType = func.ReturnType.ToString()
                     Parameters = parameters
-                    Documentation = Option.ofObj func.Comment.BriefText
+                    Documentation = 
+                        if isNull func.Comment then None
+                        else Option.ofObj func.Comment.BriefText
                     IsVirtual = 
                         match func with 
                         | :? CppSharp.AST.Method as m -> m.IsVirtual 
@@ -99,7 +101,9 @@ module CppParser =
                     Name = classDecl.Name
                     Methods = methodVisitor.GetDeclarations()
                     Fields = fields
-                    Documentation = Option.ofObj classDecl.Comment.BriefText
+                    Documentation = 
+                        if isNull classDecl.Comment then None
+                        else Option.ofObj classDecl.Comment.BriefText
                     IsAbstract = classDecl.IsAbstract
                 })
             true
@@ -112,7 +116,9 @@ module CppParser =
                     Values = enumDecl.Items
                             |> Seq.map (fun i -> i.Name, i.Value)
                             |> List.ofSeq
-                    Documentation = Option.ofObj enumDecl.Comment.BriefText
+                    Documentation = 
+                        if isNull enumDecl.Comment then None
+                        else Option.ofObj enumDecl.Comment.BriefText
                 })
             true
     
@@ -143,7 +149,7 @@ module CppParser =
         // Add standard include directories
         parserOptions.SetupMSVC()
         parserOptions.AddSystemIncludeDirs("D:\\msys64\\mingw64\\include")
-        parserOptions.AddSystemIncludeDirs("D:\\msys64\\mingw64\\lib\\clang\\20\\include")      
+        parserOptions.AddSystemIncludeDirs("D:\\msys64\\mingw64\\lib\\clang\\20\\include")
     
         // Setup for MinGW
         parserOptions.TargetTriple <- "x86_64-w64-mingw32"
@@ -154,29 +160,35 @@ module CppParser =
         parserOptions.AddArguments("c++")
         parserOptions.AddArguments(options.HeaderFile)
     
-        // Create a context and parser directly
-        let context = ASTContext()
+        // Create a new parser and parse the header
         let parser = new ClangParser()
         let parseResult = ClangParser.ParseHeader(parserOptions)
     
-        // Check for parsing errors with the correct property access
+        // Check for parsing errors
         if parseResult.DiagnosticsCount > 0u then
             let diagnostics = parseResult.DiagnosticsCount
             printfn "Diagnostics: %i" diagnostics
             failwith $"Failed to parse header: {options.HeaderFile}"
     
-        // Visit the AST
-        let visitor = new DeclarationVisitor()
+        // Get the AST context from the parsing result
+        let astContext = ASTContext()
     
-        // Process translation units from the context using proper API
-        if context.TranslationUnits.Count = 0 then
+        // Visit the AST
+        let visitor = DeclarationVisitor()
+    
+        // Process translation units from the context
+        if astContext.TranslationUnits.Count = 0 then
             printfn "Warning: No translation units found"
         else
-            for unit in context.TranslationUnits do
-                unit.Visit(visitor :> AstVisitor) |> ignore
+            try
+                for unit in astContext.TranslationUnits do
+                    unit.Visit(visitor :> AstVisitor) |> ignore
+            with ex ->
+                printfn $"Error during translation unit visit: {ex.Message}"
+                reraise()
     
             if options.Verbose then
-                printfn "Processed %d translation units" context.TranslationUnits.Count
+                printfn "Processed %d translation units" astContext.TranslationUnits.Count
     
         visitor.GetDeclarations()
 

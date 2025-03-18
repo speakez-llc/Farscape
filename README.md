@@ -24,6 +24,7 @@ Farscape is a command-line tool that aims to automatically generate idiomatic F#
   - More Demanding C++ templates could be supported by F# type providers
 - **P/Invoke Support**: Automatically creates proper P/Invoke declarations for native functions
 - **Type Mapping**: Precise numeric types __*with matching bit widths and signedness*__
+- **Cross-Platform Bindings**: Generated code works seamlessly across Windows, Linux, macOS, as well as mobile and IoT platforms
 - **Project Generation**: 🚧 Targets the creation of complete F# projects ready for building 🚧
 - **Documentation**: C++ documentation transferred as F# XML docs for consistent developer experience in all IDEs and code editor environments.
 

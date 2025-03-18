@@ -91,7 +91,7 @@ farscape --header path/to/header.h --library libname
 farscape --header path/to/header.h \
          --library libname \
          --output ./output \
-         --namespace MyCompany.Bindings \
+         --namespace MyProject.Bindings \
          --include-paths /usr/include,/usr/local/include \
          --verbose
 ```

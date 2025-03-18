@@ -4,6 +4,15 @@
 
 Farscape is a command-line tool that aims to automatically generate idiomatic F# bindings for C++ libraries, preserving F# intrinsics. It leverages LibClang through CppSHarp to parse C++ headers and produces F# code that can be directly used in both native and .NET based F# applications (and we have plans to eventually support C#/.NET as well through fluent API bindings).
 
+<table>
+  <tr>
+    <td align="center" width="100%">
+      <strong>⚠️ Caution: Experimental ⚠️</strong><br>
+      This project is in early development and not ready for production use.
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - **C++ Header Parsing**: Uses CppSharp/LibClang to accurately parse C++ header files

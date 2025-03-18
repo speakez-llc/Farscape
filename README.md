@@ -219,5 +219,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [CppSharp](https://github.com/mono/CppSharp) for its deep coverage of LibClang
 - [LLVM/Clang](https://llvm.org/) project for LibClang
+- [SpectreCoff](https://github.com/EluciusFTW/SpectreCoff) and Spectre.Console that it wraps
 - F# community for inspiration and support
 - .NET runtime for P/Invoke support

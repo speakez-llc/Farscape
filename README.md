@@ -205,6 +205,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [CppSharp](https://github.com/mono/CppSharp) for its deep coverage of LibClang
 - [LLVM/Clang](https://llvm.org/) project for LibClang
-- [XParsec](https://github.com/roboz0r/XParsec) for rich parsing of CppSharp and LibClang outputs
 - F# community for inspiration and support
 - .NET runtime for P/Invoke support

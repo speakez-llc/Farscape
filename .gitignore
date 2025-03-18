@@ -4,11 +4,11 @@
 ## Get latest from `dotnet new gitignore`
 
 # Farscape.Cli specific output
-src/Farscape.Cli/output/
-src/Farscape.Cli/bin/
-src/Farscape.Cli/obj/
-src/Farscape.Cli/**/bin/
-src/Farscape.Cli/**/obj/
+src/Farscape.*/output/
+src/Farscape.*/bin/
+src/Farscape.*/obj/
+src/Farscape.*/**/bin/
+src/Farscape.*/**/obj/
 
 # This ensures all generated files in output are ignored
 src/Farscape.Cli/output/**/*

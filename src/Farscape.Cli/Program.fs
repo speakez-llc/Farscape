@@ -25,7 +25,7 @@ let parseArgs (args: string[]) =
             | "-l" | "--library" when i + 1 < args.Length ->
                 parseArgsRec (i + 2) { options with Library = args.[i + 1] }
             | "-o" | "--output" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Output = args.[i + 1] }
+                parseArgsRec (i + 2)d { options with Output = args.[i + 1] }
             | "-n" | "--namespace" when i + 1 < args.Length ->
                 parseArgsRec (i + 2) { options with Namespace = args.[i + 1] }
             | "-i" | "--include-paths" when i + 1 < args.Length ->

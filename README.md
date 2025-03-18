@@ -184,7 +184,7 @@ Farscape can handle more complex scenarios including:
 
 ### Self-Hosting
 
-Farscape can be used to generate F# bindings for LibClang itself, creating a self-hosting cycle.
+Farscape will eventually be used to generate F# bindings for LibClang itself, creating a self-hosting cycle.
 
 ### MLIR/LLVM Integration
 
@@ -192,7 +192,7 @@ The architecture is designed to potentially support MLIR/LLVM lowering in the fu
 
 ### Delegate Pointer Handling
 
-Special handling for C++ function pointers and delegates is included, with support for marshaling between F# functions and C++ callbacks.
+Special handling for C++ function pointers and delegates will be included, with support for marshaling between F# functions and C++ callbacks.
 
 ## Contributing
 

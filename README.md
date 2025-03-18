@@ -26,7 +26,7 @@ We've successfully created a working implementation for cJSON.h that:
 - Maps C++ types to their F# equivalents (though with some conversion issues like char* → byte)
 - Produces usable bindings that can be incorporated into F# projects
 
-The current solution is intentionally focused on cJSON as a proof of concept, with a simplified approach that avoids dependency on the automated CppSharp parser.
+The current solution is intentionally focused on cJSON as a proof of concept, with a simplified approach.
 
 ### Generalization Requirements
 

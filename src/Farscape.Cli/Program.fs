@@ -3,7 +3,7 @@
 open System
 open System.IO
 open Farscape.Core
-open SpectreCoff
+open System.Text
 
 type CommandOptions = {
     Header: string
@@ -57,38 +57,49 @@ let validateOptions (options: CommandOptions) =
     if errors.IsEmpty then Ok options
     else Error errors
 
+let printLine (text: string) =
+    Console.WriteLine(text)
+
+let printColorLine (text: string) (color: ConsoleColor) =
+    let originalColor = Console.ForegroundColor
+    Console.ForegroundColor <- color
+    Console.WriteLine(text)
+    Console.ForegroundColor <- originalColor
+
+let printHeader (text: string) =
+    let width = Math.Min(Console.WindowWidth, 80)
+    let line = new String('=', width)
+    printColorLine line ConsoleColor.Cyan
+    printColorLine text ConsoleColor.Cyan
+    printColorLine line ConsoleColor.Cyan
+
 let showHeader () =
-    rule "[cyan]Farscape: F# Native Library Binding Generator[/]" |> toConsole
+    printHeader "Farscape: F# Native Library Binding Generator"
 
 let showConfiguration (options: CommandOptions) =
-    rule "[bold]Configuration:[/]" |> toConsole
-    BlankLine |> toConsole
+    printHeader "Configuration"
+    printLine ""
 
-    tableWithRows [
-        [
-            "[yellow]Header File[/]"
-            options.Header
-        ]
-        [
-            "[yellow]Library Name[/]"
-            options.Library
-        ]
-        [
-            "[yellow]Output Directory[/]"
-            options.Output
-        ]
-        [
-            "[yellow]Namespace[/]"
-            options.Namespace
-        ]
-        [
-            "[yellow]Include Paths[/]"
-            if String.IsNullOrEmpty(options.IncludePaths) then
-                "[gray]None[/]"
-            else
-                options.IncludePaths.Replace(",", "\n")
-        ]
-    ] |> withRoundedBorder |> toConsole
+    printColorLine "Header File:" ConsoleColor.Yellow
+    printLine $"  {options.Header}"
+    
+    printColorLine "Library Name:" ConsoleColor.Yellow
+    printLine $"  {options.Library}"
+    
+    printColorLine "Output Directory:" ConsoleColor.Yellow
+    printLine $"  {options.Output}"
+    
+    printColorLine "Namespace:" ConsoleColor.Yellow
+    printLine $"  {options.Namespace}"
+    
+    printColorLine "Include Paths:" ConsoleColor.Yellow
+    if String.IsNullOrEmpty(options.IncludePaths) then
+        printLine "  None"
+    else
+        options.IncludePaths.Split(',')
+        |> Array.iter (fun path -> printLine $"  {path}")
+    
+    printLine ""
 
 let parseIncludePaths (paths: string) =
     if String.IsNullOrWhiteSpace(paths) then []
@@ -96,8 +107,8 @@ let parseIncludePaths (paths: string) =
 
 let runGeneration (options: CommandOptions) =
     // Show generating message
-    rule "[bold]Generating F# bindings...[/]" |> toConsole
-    BlankLine |> toConsole
+    printHeader "Generating F# bindings..."
+    printLine ""
 
     let includePaths = parseIncludePaths options.IncludePaths
 
@@ -112,79 +123,64 @@ let runGeneration (options: CommandOptions) =
     }
 
     // Process steps with appropriate messages
-    text "Starting C++ header parsing..." |> toConsole
+    printLine "Starting C++ header parsing..."
     let declarations = CppParser.parse options.Header includePaths options.Verbose
 
-    text "Mapping C++ types to F#..." |> toConsole
-    System.Threading.Thread.Sleep(1000) // Simulating work
+    printLine "Mapping C++ types to F#..."
+    System.Threading.Thread.Sleep(500) // Simulating work
 
-    text "Generating F# code..." |> toConsole
-    System.Threading.Thread.Sleep(1000) // Simulating work
+    printLine "Generating F# code..."
+    System.Threading.Thread.Sleep(500) // Simulating work
 
-    text "Creating project files..." |> toConsole
+    printLine "Creating project files..."
     BindingGenerator.generateBindings generationOptions |> ignore
 
-    text "Generation complete!" |> toConsole
+    printLine "Generation complete!"
+    printLine ""
 
     // Show completion message
-    rule "[green]Generation Complete[/]" |> toConsole
-    BlankLine |> toConsole
+    printColorLine "Generation Complete" ConsoleColor.Green
+    printLine ""
 
     // Output info
-    rule $"[bold]Output:[/] F# bindings were successfully generated in [cyan]{options.Output}[/]" |> toConsole
-    BlankLine |> toConsole
+    printColorLine $"Output: F# bindings were successfully generated in {options.Output}" ConsoleColor.Cyan
+    printLine ""
 
 let showNextSteps (options: CommandOptions) =
     // Show next steps
-    rule "[bold]Next Steps:[/]" |> toConsole
-    BlankLine |> toConsole
+    printHeader "Next Steps"
+    printLine ""
 
-    let buildSteps = [
-        $"cd {options.Output}"
-        "dotnet build"
-    ]
-
-    let useSteps = [
-        $"Add a reference to {options.Library}.dll"
-        $"open {options.Namespace}"
-    ]
-
-    let markdownContent = sprintf """
-### How to use the generated bindings:
-
-#### Build the project
-```
-%s
-```
-
-#### Use in your own project
-```fsharp
-%s
-```
-""" (String.Join("\n", buildSteps)) (String.Join("\n", useSteps))
-markdownContent |> toConsole
+    printLine "How to use the generated bindings:"
+    printLine ""
+    
+    printLine "Build the project:"
+    printLine $"  cd {options.Output}"
+    printLine "  dotnet build"
+    printLine ""
+    
+    printLine "Use in your own project:"
+    printLine $"  Add a reference to {options.Library}.dll"
+    printLine $"  open {options.Namespace}"
+    printLine ""
 
 let showError (message: string) =
-    rule $"[red]Error:[/] {message}" |> toConsole
-    BlankLine |> toConsole
+    printColorLine $"Error: {message}" ConsoleColor.Red
+    printLine ""
 
 let showUsage () =
-    rule "[yellow]Usage:[/] farscape [options]" |> toConsole
-    BlankLine |> toConsole
-    rule "[bold]Options:[/]" |> toConsole
-    BlankLine |> toConsole
-
-    let markdownContent = """
-| Option | Description | Default |
-|--------|-------------|---------|
-| **-h, --header** | Path to C++ header file | *Required* |
-| **-l, --library** | Name of native library to bind to | *Required* |
-| **-o, --output** | Output directory for generated code | ./output |
-| **-n, --namespace** | Namespace for generated code | NativeBindings |
-| **-i, --include-paths** | Additional include paths (comma separated) | None |
-| **-v, --verbose** | Enable verbose output | false |
-"""
-    AnsiConsole.Write(new Markup(markdownContent))
+    printColorLine "Usage: farscape [options]" ConsoleColor.Yellow
+    printLine ""
+    printColorLine "Options:" ConsoleColor.Yellow
+    printLine ""
+    
+    printLine "  -h, --header        Path to C++ header file (Required)"
+    printLine "  -l, --library       Name of native library to bind to (Required)"
+    printLine "  -o, --output        Output directory for generated code (Default: ./output)"
+    printLine "  -n, --namespace     Namespace for generated code (Default: NativeBindings)"
+    printLine "  -i, --include-paths Additional include paths (comma separated)"
+    printLine "  -v, --verbose       Enable verbose output"
+    printLine ""
 
 [<EntryPoint>]
 let main argv =
@@ -205,7 +201,7 @@ let main argv =
                 showNextSteps validOptions
                 0
             | Error errors ->
-                BlankLine |> toConsole
+                printLine ""
                 
                 errors |> List.iter showError
                 showUsage()

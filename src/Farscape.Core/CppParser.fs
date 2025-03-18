@@ -62,7 +62,7 @@ module CppParser =
     
         override _.VisitDeclaration(decl: CppSharp.AST.Declaration) = true
     
-        override _.VisitFunctionDecl(func: Function) =
+        override _.VisitFunctionDecl(func: CppSharp.AST.Function) =
             let parameters =
                 func.Parameters
                 |> Seq.map (fun p -> p.Name, p.Type.ToString())
@@ -76,16 +76,16 @@ module CppParser =
                     Documentation = Option.ofObj func.Comment.BriefText
                     IsVirtual = 
                         match func with 
-                        | :? Method as m -> m.IsVirtual 
+                        | :? CppSharp.AST.Method as m -> m.IsVirtual 
                         | _ -> false
                     IsStatic = 
                         match func with
-                        | :? Method as m -> m.IsStatic
+                        | :? CppSharp.AST.Method as m -> m.IsStatic
                         | _ -> false
                 })
             true
     
-        override _.VisitClassDecl(classDecl: Class) =
+        override _.VisitClassDecl(classDecl: CppSharp.AST.Class) =
             let methodVisitor = DeclarationVisitor()
             classDecl.Methods |> Seq.iter (fun m -> methodVisitor.VisitDeclaration(m) |> ignore)
         
@@ -105,7 +105,7 @@ module CppParser =
             true
     
                
-        override _.VisitEnumDecl(enumDecl: Enumeration) =
+        override _.VisitEnumDecl(enumDecl: CppSharp.AST.Enumeration) =
             declarations.Add(
                 Enum {
                     Name = enumDecl.Name
@@ -116,7 +116,7 @@ module CppParser =
                 })
             true
     
-        override _.VisitNamespace(namespaceDecl: Namespace) =
+        override _.VisitNamespace(namespaceDecl: CppSharp.AST.Namespace) =
             let visitor = DeclarationVisitor()
             namespaceDecl.Declarations |> Seq.iter (fun d -> visitor.VisitDeclaration(d) |> ignore)
         
@@ -135,30 +135,50 @@ module CppParser =
 
     let parseHeader (options: HeaderParserOptions) =
         let parserOptions = new ParserOptions()
-        
+    
         // Add include directories
         for includePath in options.IncludePaths do
             parserOptions.AddIncludeDirs(includePath)
-            
-        parserOptions.SetupMSVC()
-        
-        // Create the AST context directly
-        let astContext = new ASTContext()
-        
-        // Parse the header using LibClang
-        let success = ClangParser.ParseHeader(parserOptions)
-        
-        if success.DiagnosticsCount > 0u then
-            failwith "Failed to parse header"
-        
-        // Visit the translation units
-        let visitor = DeclarationVisitor()
-        
-        for unit in astContext.TranslationUnits do
-            unit.Visit(visitor) |> ignore
-            
-        visitor.GetDeclarations()
     
+        // Add standard include directories
+        parserOptions.SetupMSVC()
+        parserOptions.AddSystemIncludeDirs("D:\\msys64\\mingw64\\include")
+        parserOptions.AddSystemIncludeDirs("D:\\msys64\\mingw64\\lib\\clang\\20\\include")      
+    
+        // Setup for MinGW
+        parserOptions.TargetTriple <- "x86_64-w64-mingw32"
+    
+        // Set the header file to parse
+        parserOptions.Verbose <- options.Verbose
+        parserOptions.AddArguments("-x")
+        parserOptions.AddArguments("c++")
+        parserOptions.AddArguments(options.HeaderFile)
+    
+        // Create a context and parser directly
+        let context = ASTContext()
+        let parser = new ClangParser()
+        let parseResult = ClangParser.ParseHeader(parserOptions)
+    
+        // Check for parsing errors with the correct property access
+        if parseResult.DiagnosticsCount > 0u then
+            let diagnostics = parseResult.DiagnosticsCount
+            printfn "Diagnostics: %i" diagnostics
+            failwith $"Failed to parse header: {options.HeaderFile}"
+    
+        // Visit the AST
+        let visitor = new DeclarationVisitor()
+    
+        // Process translation units from the context using proper API
+        if context.TranslationUnits.Count = 0 then
+            printfn "Warning: No translation units found"
+        else
+            for unit in context.TranslationUnits do
+                unit.Visit(visitor :> AstVisitor) |> ignore
+    
+            if options.Verbose then
+                printfn "Processed %d translation units" context.TranslationUnits.Count
+    
+        visitor.GetDeclarations()
 
     let parse headerFile includePaths verbose =
         let options = {
@@ -166,14 +186,19 @@ module CppParser =
             IncludePaths = includePaths
             Verbose = verbose
         }
-    
+        
         if verbose then
             printfn "Parsing header: %s" headerFile
             printfn "Include paths: %A" includePaths
-    
-        let declarations = parseHeader options
-    
-        if verbose then
-            printfn "Found %d declarations" (List.length declarations)
-    
-        declarations
+        
+        try
+            let declarations = parseHeader options
+            
+            if verbose then
+                printfn "Found %d declarations" (List.length declarations)
+            
+            declarations
+        with ex ->
+            printfn "Error parsing header: %s" ex.Message
+            // Return empty list as fallback
+            []

@@ -16,7 +16,7 @@ Farscape is a command-line tool that automatically generates idiomatic F# bindin
 - **Documentation**: Preserves C++ documentation as F# XML docs
 
 ---
-
+![alt text](img/Farscape_social.png)
 ---
 ### Current Implementation
 
@@ -59,7 +59,7 @@ The existing manual approach for cJSON demonstrates the feasibility of this visi
 Build upon the current foundation by systematically expanding support for different C++ features and header patterns, starting with basic C-style libraries and progressively adding support for more complex C++ constructs.
 
 ___
-
+![alt text](<img/Screenshot 2025-03-18 113946.png>)
 ---
 
 ## Prerequisites

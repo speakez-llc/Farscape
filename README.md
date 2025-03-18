@@ -44,26 +44,26 @@ The current solution is intentionally focused on cJSON as a proof of concept. Th
 
 To fulfill Farscape's vision of supporting any C++ library, the implementation needs to be generalized:
 
-1. **Develop a more complex header parsing system**:
+1. **Generate F# APIs faithful to the C++ original**:
+    - Create proper F# modules and types that mirror C++ namespaces
+    - Transform C++ methods into F# functions for an idiomatic experience
+    - Generate helpful documentation from header comments
+    - Produce wrapper types that provide memory safety
+
+2. **Develop a more complex header parsing system**:
     - Enhance CppSharp integration for more detailed and varied header parsing
     - Support standard C/C++ constructs across various library styles
     - Handle platform-specific details and preprocessor directives
 
-2. **Improve type mapping**:
+3. **Improve type mapping**:
     - Refine string handling (currently mapping to byte instead of proper string marshaling)
     - Broader support for complex types, structs, and templates
     - Transform C++ function pointers into F# functional delegate definitions including built-in lifecycle management
 
-3. **Support diverse library patterns**:
+4. **Support diverse library patterns**:
     - Handle C-style libraries like cJSON
     - Support C++ classes and object-oriented patterns
     - Accommodate different calling conventions and export styles
-
-4. **Generate precise F# code**:
-    - Create proper F# modules and types that mirror C++ namespaces
-    - Generate helpful documentation from header comments
-    - Produce wrapper types that provide memory safety
-    - Transform C++ methods into F# functions for an idiomatic experience
 
 The existing hybrid approach for cJSON demonstrates the feasibility of this vision, and serves as a template for generalization to other libraries.
 

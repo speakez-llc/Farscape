@@ -15,6 +15,53 @@ Farscape is a command-line tool that automatically generates idiomatic F# bindin
 - **Project Generation**: Creates complete F# projects ready for building
 - **Documentation**: Preserves C++ documentation as F# XML docs
 
+---
+
+---
+### Current Implementation
+
+We've successfully created a working implementation for cJSON.h that:
+- Manually extracts function declarations, structs, and type definitions
+- Generates appropriate P/Invoke declarations with correct calling conventions
+- Maps C++ types to their F# equivalents (though with some conversion issues like char* → byte)
+- Produces usable bindings that can be incorporated into F# projects
+
+The current solution is intentionally focused on cJSON as a proof of concept, with a simplified approach that avoids dependency on the automated CppSharp parser.
+
+### Generalization Requirements
+
+To fulfill Farscape's vision of supporting any C++ library, the implementation needs to be generalized:
+
+1. **Create a robust header parsing system**:
+    - Enhance or replace CppSharp integration for reliable header parsing
+    - Support standard C/C++ constructs across various library styles
+    - Handle platform-specific details and preprocessor directives
+
+2. **Improve type mapping**:
+    - Refine string handling (currently mapping to byte instead of proper string marshaling)
+    - Better support for complex types, structs, and templates
+    - Handle function pointers and callbacks correctly
+
+3. **Support diverse library patterns**:
+    - Handle C-style libraries like cJSON
+    - Support C++ classes and object-oriented patterns
+    - Accommodate different calling conventions and export styles
+
+4. **Generate idiomatic F# code**:
+    - Create proper F# modules and types that mirror C++ namespaces
+    - Generate helpful documentation from header comments
+    - Produce wrapper types that provide memory safety
+
+The existing manual approach for cJSON demonstrates the feasibility of this vision, and serves as a template for generalization to other libraries.
+
+### Path Forward
+
+Build upon the current foundation by systematically expanding support for different C++ features and header patterns, starting with basic C-style libraries and progressively adding support for more complex C++ constructs.
+
+___
+
+---
+
 ## Prerequisites
 
 - [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) or later

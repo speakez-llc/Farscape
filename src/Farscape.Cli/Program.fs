@@ -3,59 +3,47 @@
 open System
 open System.IO
 open Farscape.Core
-open System.Text
+open FSharp.SystemCommandLine
+open System.CommandLine.Invocation
 
-type CommandOptions = {
-    Header: string
-    Library: string
-    Output: string
-    Namespace: string
-    IncludePaths: string
-    Verbose: bool
-}
+[<AutoOpen>]
+module Options = 
+    type CommandOptions = 
+        {
+            Header: string
+            Library: string
+            Output: string
+            Namespace: string
+            IncludePaths: string
+            Verbose: bool
+        }
 
-let parseArgs (args: string[]) =
-    let rec parseArgsRec (i: int) (options: CommandOptions) =
-        if i >= args.Length then
-            options
-        else
-            match args.[i] with
-            | "-h" | "--header" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Header = args.[i + 1] }
-            | "-l" | "--library" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Library = args.[i + 1] }
-            | "-o" | "--output" when i + 1 < args.Length ->
-                parseArgsRec (i + 2)d { options with Output = args.[i + 1] }
-            | "-n" | "--namespace" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Namespace = args.[i + 1] }
-            | "-i" | "--include-paths" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with IncludePaths = args.[i + 1] }
-            | "-v" | "--verbose" ->
-                parseArgsRec (i + 1) { options with Verbose = true }
-            | _ -> parseArgsRec (i + 1) options
+    let header = 
+        Input.Option<string>(["-h"; "--header"], 
+            fun o -> 
+                o.Description <- "Header file"
+                o.IsRequired <- true
+                o.AddValidator(fun result -> 
+                    let path = result.GetValueForOption<string> o
+                    if not (File.Exists path) then
+                        result.ErrorMessage <- $"Header file not found: {path}"
+                )
+        )
+    let library = Input.OptionRequired<string>(["-l"; "--library"], description = "Library name")
+    let output = Input.Option<string>(["-o"; "--output"], description = "Output path", defaultValue = "./output")
+    let ns = Input.Option<string>(["-n"; "--namespace"], description = "Namespace", defaultValue = "NativeBindings")
+    let includePaths = Input.Option<string>(["-i"; "--include-paths"], description = "Paths to include")
+    let verbose = Input.Option<bool>(["-v"; "--verbose"], description = "Verbose output", defaultValue = false)
 
-    parseArgsRec 0 {
-        Header = ""
-        Library = ""
-        Output = "./output"
-        Namespace = "NativeBindings"
-        IncludePaths = ""
-        Verbose = false
-    }
-
-let validateOptions (options: CommandOptions) =
-    let errors = [
-        if String.IsNullOrEmpty(options.Header) then
-            yield "Header file path is required (--header or -h)"
-        elif not (File.Exists(options.Header)) then
-            yield $"Header file not found: {options.Header}"
-
-        if String.IsNullOrEmpty(options.Library) then
-            yield "Library name is required (--library or -l)"
-    ]
-
-    if errors.IsEmpty then Ok options
-    else Error errors
+    let bind (ctx: InvocationContext) = 
+        {
+            Header = header.GetValue ctx
+            Library = library.GetValue ctx
+            Output = output.GetValue ctx
+            Namespace = ns.GetValue ctx
+            IncludePaths = includePaths.GetValue ctx
+            Verbose = verbose.GetValue ctx            
+        }
 
 let printLine (text: string) =
     Console.WriteLine(text)
@@ -182,31 +170,17 @@ let showUsage () =
     printLine "  -v, --verbose       Enable verbose output"
     printLine ""
 
+let handler (ctx: InvocationContext) = 
+    let options = Options.bind ctx
+    showHeader()
+    showConfiguration options
+    runGeneration options
+    showNextSteps options
+
 [<EntryPoint>]
 let main argv =
-    try
-        showHeader()
-
-        match argv with
-        | [| "--help" |] | [| "-?" |] | [| |] ->
-            showUsage()
-            0
-        | _ ->
-            let options = parseArgs argv
-
-            match validateOptions options with
-            | Ok validOptions ->
-                showConfiguration validOptions
-                runGeneration validOptions
-                showNextSteps validOptions
-                0
-            | Error errors ->
-                printLine ""
-                
-                errors |> List.iter showError
-                showUsage()
-                1
-    with
-    | ex ->
-        showError ex.Message
-        1
+    rootCommand argv {
+        description "Farscape: F# Native Library Binding Generator"
+        inputs (Input.Context())
+        setHandler handler
+    }

@@ -5,48 +5,17 @@ open System.IO
 open Farscape.Core
 open FSharp.SystemCommandLine
 open System.CommandLine.Invocation
+open System.CommandLine.Help
 
-[<AutoOpen>]
-module Options = 
-    type CommandOptions = 
-        {
-            Header: string
-            Library: string
-            Output: string
-            Namespace: string
-            IncludePaths: string[]
-            Verbose: bool
-        }
-
-    let header = 
-        Input.Option<string>(["-h"; "--header"], 
-            // Manually edit underlying S.CL option to add validator logic.
-            fun o -> 
-                o.Description <- "Path to C++ header file"
-                o.IsRequired <- true
-                o.AddValidator(fun result -> 
-                    let path = result.GetValueForOption<string> o
-                    if not (File.Exists path) then
-                        result.ErrorMessage <- $"Header file not found: {path}"
-                )
-        )
-    let library =       Input.OptionRequired<string>(["-l"; "--library"], description = "Name of native library to bind to")
-    let output =        Input.Option<string>(["-o"; "--output"], description = "Output directory for generated code", defaultValue = "./output")
-    let namespace' =    Input.Option<string>(["-n"; "--namespace"], description = "Namespace for generated code", defaultValue = "NativeBindings")
-    let includePaths =  Input.Option<string[]>(["-i"; "--include-paths"], description = "Additional include paths")
-    let verbose =       Input.Option<bool>(["-v"; "--verbose"], description = "Verbose output", defaultValue = false)
-
-    let all : HandlerInput seq = [header; library; output; namespace'; includePaths; verbose]
-
-    let bind (ctx: InvocationContext) = 
-        {
-            Header = header.GetValue ctx
-            Library = library.GetValue ctx
-            Output = output.GetValue ctx
-            Namespace = namespace'.GetValue ctx
-            IncludePaths = includePaths.GetValue ctx
-            Verbose = verbose.GetValue ctx            
-        }
+type CommandOptions = 
+    {
+        Header: FileInfo
+        Library: string
+        Output: string
+        Namespace: string
+        IncludePaths: string[]
+        Verbose: bool
+    }
 
 let printLine (text: string) =
     Console.WriteLine(text)
@@ -101,7 +70,7 @@ let runGeneration (options: CommandOptions) =
 
     // Create options
     let generationOptions = {
-        BindingGenerator.GenerationOptions.HeaderFile = options.Header
+        BindingGenerator.GenerationOptions.HeaderFile = options.Header.FullName
         BindingGenerator.GenerationOptions.LibraryName = options.Library
         BindingGenerator.GenerationOptions.OutputDirectory = options.Output
         BindingGenerator.GenerationOptions.Namespace = options.Namespace
@@ -111,7 +80,7 @@ let runGeneration (options: CommandOptions) =
 
     // Process steps with appropriate messages
     printLine "Starting C++ header parsing..."
-    let declarations = CppParser.parse options.Header includePaths options.Verbose
+    let declarations = CppParser.parse options.Header.FullName includePaths options.Verbose
 
     printLine "Mapping C++ types to F#..."
     System.Threading.Thread.Sleep(500) // Simulating work
@@ -155,18 +124,56 @@ let showError (message: string) =
     printColorLine $"Error: {message}" ConsoleColor.Red
     printLine ""
 
-let handler (ctx: InvocationContext) = 
-    let options = Options.bind ctx
-    showHeader()
-    showConfiguration options
-    runGeneration options
-    showNextSteps options
+let generateCommand = 
+    let header = 
+        Input.Option<FileInfo>(["-h"; "--header"], 
+            // Manually edit underlying S.CL option to add validator logic.
+            fun o -> 
+                o.Description <- "Path to C++ header file"
+                o.IsRequired <- true
+                o.AddValidator(fun result -> 
+                    let file = result.GetValueForOption<FileInfo> o
+                    if not file.Exists then
+                        result.ErrorMessage <- $"Header file not found: {file.FullName}"
+                )
+        )
+    let library =   Input.OptionRequired<string>(["-l"; "--library"], description = "Name of native library to bind to")
+    let output =    Input.Option<string>(["-o"; "--output"], description = "Output directory for generated code", defaultValue = "./output")
+    let ns =        Input.Option<string>(["-n"; "--namespace"], description = "Namespace for generated code", defaultValue = "NativeBindings")
+    let includes =  Input.Option<string[]>(["-i"; "--include-paths"], description = "Additional include paths")
+    let verbose =   Input.Option<bool>(["-v"; "--verbose"], description = "Verbose output", defaultValue = false)
+
+    let handler (header, library, output, ns, includes, verbose) = 
+        let options = {
+            Header = header
+            Library = library
+            Output = output
+            Namespace = ns
+            IncludePaths = includes
+            Verbose = verbose
+        }
+        showHeader()
+        showConfiguration options
+        runGeneration options
+        showNextSteps options
+
+    command "generate" {
+        description "Generate F# bindings for a native library"
+        inputs (header, library, output, ns, includes, verbose)
+        setHandler handler
+    }
+
+let showHelp (ctx: InvocationContext) =
+    let hc = HelpContext(ctx.HelpBuilder, ctx.Parser.Configuration.RootCommand, System.Console.Out)
+    ctx.HelpBuilder.Write(hc)
 
 [<EntryPoint>]
 let main argv =
     rootCommand argv {
         description "Farscape: F# Native Library Binding Generator"
         inputs (Input.Context())
-        addGlobalOptions Options.all
-        setHandler handler
+        setHandler showHelp
+        addCommands [ 
+            generateCommand
+        ]
     }

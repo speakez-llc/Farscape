@@ -14,14 +14,15 @@ module Options =
             Library: string
             Output: string
             Namespace: string
-            IncludePaths: string
+            IncludePaths: string[]
             Verbose: bool
         }
 
     let header = 
         Input.Option<string>(["-h"; "--header"], 
+            // Manually edit underlying S.CL option to add validator logic.
             fun o -> 
-                o.Description <- "Header file"
+                o.Description <- "Path to C++ header file"
                 o.IsRequired <- true
                 o.AddValidator(fun result -> 
                     let path = result.GetValueForOption<string> o
@@ -29,18 +30,20 @@ module Options =
                         result.ErrorMessage <- $"Header file not found: {path}"
                 )
         )
-    let library = Input.OptionRequired<string>(["-l"; "--library"], description = "Library name")
-    let output = Input.Option<string>(["-o"; "--output"], description = "Output path", defaultValue = "./output")
-    let ns = Input.Option<string>(["-n"; "--namespace"], description = "Namespace", defaultValue = "NativeBindings")
-    let includePaths = Input.Option<string>(["-i"; "--include-paths"], description = "Paths to include")
-    let verbose = Input.Option<bool>(["-v"; "--verbose"], description = "Verbose output", defaultValue = false)
+    let library =       Input.OptionRequired<string>(["-l"; "--library"], description = "Name of native library to bind to")
+    let output =        Input.Option<string>(["-o"; "--output"], description = "Output directory for generated code", defaultValue = "./output")
+    let namespace' =    Input.Option<string>(["-n"; "--namespace"], description = "Namespace for generated code", defaultValue = "NativeBindings")
+    let includePaths =  Input.Option<string[]>(["-i"; "--include-paths"], description = "Additional include paths")
+    let verbose =       Input.Option<bool>(["-v"; "--verbose"], description = "Verbose output", defaultValue = false)
+
+    let all : HandlerInput seq = [header; library; output; namespace'; includePaths; verbose]
 
     let bind (ctx: InvocationContext) = 
         {
             Header = header.GetValue ctx
             Library = library.GetValue ctx
             Output = output.GetValue ctx
-            Namespace = ns.GetValue ctx
+            Namespace = namespace'.GetValue ctx
             IncludePaths = includePaths.GetValue ctx
             Verbose = verbose.GetValue ctx            
         }
@@ -81,24 +84,20 @@ let showConfiguration (options: CommandOptions) =
     printLine $"  {options.Namespace}"
     
     printColorLine "Include Paths:" ConsoleColor.Yellow
-    if String.IsNullOrEmpty(options.IncludePaths) then
+    if options.IncludePaths = [||] then
         printLine "  None"
     else
-        options.IncludePaths.Split(',')
+        options.IncludePaths
         |> Array.iter (fun path -> printLine $"  {path}")
     
     printLine ""
-
-let parseIncludePaths (paths: string) =
-    if String.IsNullOrWhiteSpace(paths) then []
-    else paths.Split(',', StringSplitOptions.RemoveEmptyEntries) |> Array.toList
 
 let runGeneration (options: CommandOptions) =
     // Show generating message
     printHeader "Generating F# bindings..."
     printLine ""
 
-    let includePaths = parseIncludePaths options.IncludePaths
+    let includePaths = options.IncludePaths |> Array.toList
 
     // Create options
     let generationOptions = {
@@ -156,20 +155,6 @@ let showError (message: string) =
     printColorLine $"Error: {message}" ConsoleColor.Red
     printLine ""
 
-let showUsage () =
-    printColorLine "Usage: farscape [options]" ConsoleColor.Yellow
-    printLine ""
-    printColorLine "Options:" ConsoleColor.Yellow
-    printLine ""
-    
-    printLine "  -h, --header        Path to C++ header file (Required)"
-    printLine "  -l, --library       Name of native library to bind to (Required)"
-    printLine "  -o, --output        Output directory for generated code (Default: ./output)"
-    printLine "  -n, --namespace     Namespace for generated code (Default: NativeBindings)"
-    printLine "  -i, --include-paths Additional include paths (comma separated)"
-    printLine "  -v, --verbose       Enable verbose output"
-    printLine ""
-
 let handler (ctx: InvocationContext) = 
     let options = Options.bind ctx
     showHeader()
@@ -182,5 +167,6 @@ let main argv =
     rootCommand argv {
         description "Farscape: F# Native Library Binding Generator"
         inputs (Input.Context())
+        addGlobalOptions Options.all
         setHandler handler
     }

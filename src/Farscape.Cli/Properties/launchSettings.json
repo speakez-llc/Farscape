@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "Farscape.Cli --help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
+    "Farscape.Cli test": {
+      "commandName": "Project",
+      "commandLineArgs": "--header \"c:/headerfile.h\""
+    }
+  }
+}

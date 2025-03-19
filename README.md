@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Farscape is a command-line tool that aims to automatically generate idiomatic F# bindings for C++ libraries, preserving F# intrinsics. It leverages LibClang through CppSHarp to parse C++ headers and produces F# code that can be directly used in both native and .NET based F# applications (and we have plans to eventually support C#/.NET as well through fluent API bindings).
+Farscape is a command-line tool that aims to automatically generate idiomatic F# bindings for C/C++ libraries, preserving F# intrinsics. It leverages LibClang through CppSHarp to parse C++ headers and produces F# code that can be directly used in both native and .NET based F# applications (and we have plans to eventually support C#/.NET as well through fluent API bindings).
 
 <table>
   <tr>
@@ -24,7 +24,7 @@ Farscape is a command-line tool that aims to automatically generate idiomatic F#
   - More Demanding C++ templates could be supported by F# type providers
 - **P/Invoke Support**: Automatically creates proper P/Invoke declarations for native functions
 - **Type Mapping**: Precise numeric types __*with matching bit widths and signedness*__
-- **Cross-Platform Bindings**: Generated code works seamlessly across Windows, Linux, macOS, as well as mobile and IoT platforms
+- **Cross-Platform Bindings**: Generated code will work seamlessly with dependencies built for Windows, Linux, macOS, as well as mobile and IoT platforms
 - **Project Generation**: 🚧 Targets the creation of complete F# projects ready for building 🚧
 - **Documentation**: C++ documentation transferred as F# XML docs for consistent developer experience in all IDEs and code editor environments.
 
@@ -45,32 +45,22 @@ The current solution is intentionally focused on cJSON as a proof of concept. Th
 
 To fulfill Farscape's vision of supporting any C++ library, the implementation needs to be generalized:
 
-1. **Generate F# APIs faithful to the C++ original**:
-    - Create proper F# modules and types that mirror C++ namespaces
-    - Transform C++ methods into F# functions for an idiomatic experience
-    - Generate helpful documentation from header comments
-    - Produce wrapper types that provide memory safety
-
-2. **Develop a more complex header parsing system**:
+1. **Develop a more complex header parsing system**:
     - Enhance CppSharp integration for more detailed and varied header parsing
     - Support standard C/C++ constructs across various library styles
     - Handle platform-specific details and preprocessor directives
 
-3. **Improve type mapping**:
+2. **Improve type mapping**:
     - Refine string handling (currently mapping to byte instead of proper string marshaling)
     - Broader support for complex types, structs, and templates
     - Transform C++ function pointers into F# functional delegate definitions including built-in lifecycle management
 
-4. **Support diverse library patterns**:
+3. **Support diverse library patterns**:
     - Handle C-style libraries like cJSON
     - Support C++ classes and object-oriented patterns
     - Accommodate different calling conventions and export styles
 
-The existing hybrid approach for cJSON demonstrates the feasibility of this vision, and serves as a template for generalization to other libraries.
-
-### Path Forward
-
-Build upon the current foundation by systematically expanding support for different C++ features and header patterns, starting with basic C-style libraries and progressively adding support for more complex C++ constructs.
+The current hybrid approach for cJSON demonstrates the feasibility of this vision, and serves as a template for generalization to other libraries.
 
 ___
 ![alt text](<img/Screenshot 2025-03-18 113946.png>)
@@ -87,7 +77,7 @@ ___
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/farscape.git
+git clone https://github.com/speakez-llc/farscape.git
 cd farscape
 
 # Build the project
@@ -104,10 +94,10 @@ dotnet tool install --global --add-source ./src/Farscape.Cli/nupkg farscape
 farscape --header path/to/header.h --library libname
 
 # With additional options
-farscape --header path/to/header.h \
-         --library libname \
+farscape --header [path/to/header.h] \
+         --library [libname] \
          --output ./output \
-         --namespace MyProject.Bindings \
+         --namespace [MyProject].Bindings \
          --include-paths /usr/include,/usr/local/include \
          --verbose
 ```
@@ -176,26 +166,15 @@ module NativeBindings =
     extern double multiply(double a, double b)
 ```
 
-### Complex Example
-
-Farscape can handle more complex scenarios including:
-
-- Classes and structs
-- Enums
-- Templates (with limitations)
-- Namespaces
-- Function pointers
-- Various calling conventions
-
 ## Advanced Topics
 
-### Self-Hosting
+### Self-Hosting as Working Proof
 
 Farscape will eventually be used to generate F# bindings for LibClang itself, creating a self-hosting cycle.
 
 ### MLIR/LLVM Integration
 
-The architecture is designed to potentially support MLIR/LLVM lowering in the future, enabling compilation to native code without the .NET runtime.
+The architecture is designed with potential pairing with F#-built executables in mind - [built with MLIR/LLVM lowering](https://github.com/speakez-llc/fsharp-mlir-hello), enabling compilation to native code as well as support the current standard .NET runtime.
 
 ### Delegate Pointer Handling
 

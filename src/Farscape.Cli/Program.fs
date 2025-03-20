@@ -3,59 +3,18 @@
 open System
 open System.IO
 open Farscape.Core
-open System.Text
+open FSharp.SystemCommandLine
+open System.CommandLine.Invocation
 
-type CommandOptions = {
-    Header: string
-    Library: string
-    Output: string
-    Namespace: string
-    IncludePaths: string
-    Verbose: bool
-}
-
-let parseArgs (args: string[]) =
-    let rec parseArgsRec (i: int) (options: CommandOptions) =
-        if i >= args.Length then
-            options
-        else
-            match args.[i] with
-            | "-h" | "--header" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Header = args.[i + 1] }
-            | "-l" | "--library" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Library = args.[i + 1] }
-            | "-o" | "--output" when i + 1 < args.Length ->
-                parseArgsRec (i + 2)d { options with Output = args.[i + 1] }
-            | "-n" | "--namespace" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with Namespace = args.[i + 1] }
-            | "-i" | "--include-paths" when i + 1 < args.Length ->
-                parseArgsRec (i + 2) { options with IncludePaths = args.[i + 1] }
-            | "-v" | "--verbose" ->
-                parseArgsRec (i + 1) { options with Verbose = true }
-            | _ -> parseArgsRec (i + 1) options
-
-    parseArgsRec 0 {
-        Header = ""
-        Library = ""
-        Output = "./output"
-        Namespace = "NativeBindings"
-        IncludePaths = ""
-        Verbose = false
+type CommandOptions = 
+    {
+        Header: FileInfo
+        Library: string
+        Output: string
+        Namespace: string
+        IncludePaths: string[]
+        Verbose: bool
     }
-
-let validateOptions (options: CommandOptions) =
-    let errors = [
-        if String.IsNullOrEmpty(options.Header) then
-            yield "Header file path is required (--header or -h)"
-        elif not (File.Exists(options.Header)) then
-            yield $"Header file not found: {options.Header}"
-
-        if String.IsNullOrEmpty(options.Library) then
-            yield "Library name is required (--library or -l)"
-    ]
-
-    if errors.IsEmpty then Ok options
-    else Error errors
 
 let printLine (text: string) =
     Console.WriteLine(text)
@@ -93,28 +52,24 @@ let showConfiguration (options: CommandOptions) =
     printLine $"  {options.Namespace}"
     
     printColorLine "Include Paths:" ConsoleColor.Yellow
-    if String.IsNullOrEmpty(options.IncludePaths) then
+    if options.IncludePaths = [||] then
         printLine "  None"
     else
-        options.IncludePaths.Split(',')
+        options.IncludePaths
         |> Array.iter (fun path -> printLine $"  {path}")
     
     printLine ""
-
-let parseIncludePaths (paths: string) =
-    if String.IsNullOrWhiteSpace(paths) then []
-    else paths.Split(',', StringSplitOptions.RemoveEmptyEntries) |> Array.toList
 
 let runGeneration (options: CommandOptions) =
     // Show generating message
     printHeader "Generating F# bindings..."
     printLine ""
 
-    let includePaths = parseIncludePaths options.IncludePaths
+    let includePaths = options.IncludePaths |> Array.toList
 
     // Create options
     let generationOptions = {
-        BindingGenerator.GenerationOptions.HeaderFile = options.Header
+        BindingGenerator.GenerationOptions.HeaderFile = options.Header.FullName
         BindingGenerator.GenerationOptions.LibraryName = options.Library
         BindingGenerator.GenerationOptions.OutputDirectory = options.Output
         BindingGenerator.GenerationOptions.Namespace = options.Namespace
@@ -124,7 +79,7 @@ let runGeneration (options: CommandOptions) =
 
     // Process steps with appropriate messages
     printLine "Starting C++ header parsing..."
-    let declarations = CppParser.parse options.Header includePaths options.Verbose
+    let declarations = CppParser.parse options.Header.FullName includePaths options.Verbose
 
     printLine "Mapping C++ types to F#..."
     System.Threading.Thread.Sleep(500) // Simulating work
@@ -168,45 +123,49 @@ let showError (message: string) =
     printColorLine $"Error: {message}" ConsoleColor.Red
     printLine ""
 
-let showUsage () =
-    printColorLine "Usage: farscape [options]" ConsoleColor.Yellow
-    printLine ""
-    printColorLine "Options:" ConsoleColor.Yellow
-    printLine ""
-    
-    printLine "  -h, --header        Path to C++ header file (Required)"
-    printLine "  -l, --library       Name of native library to bind to (Required)"
-    printLine "  -o, --output        Output directory for generated code (Default: ./output)"
-    printLine "  -n, --namespace     Namespace for generated code (Default: NativeBindings)"
-    printLine "  -i, --include-paths Additional include paths (comma separated)"
-    printLine "  -v, --verbose       Enable verbose output"
-    printLine ""
+let generateCommand = 
+    let header = 
+        Input.Option<FileInfo>(["-h"; "--header"], 
+            // Manually edit underlying S.CL option to add validator logic.
+            fun o -> 
+                o.Description <- "Path to C++ header file"
+                o.IsRequired <- true
+                o.AddValidator(fun result -> 
+                    let file = result.GetValueForOption<FileInfo> o
+                    if not file.Exists then
+                        result.ErrorMessage <- $"Header file not found: {file.FullName}"
+                )
+        )
+    let library =   Input.OptionRequired<string>(["-l"; "--library"], description = "Name of native library to bind to")
+    let output =    Input.Option<string>(["-o"; "--output"], description = "Output directory for generated code", defaultValue = "./output")
+    let ns =        Input.Option<string>(["-n"; "--namespace"], description = "Namespace for generated code", defaultValue = "NativeBindings")
+    let includes =  Input.Option<string[]>(["-i"; "--include-paths"], description = "Additional include paths")
+    let verbose =   Input.Option<bool>(["-v"; "--verbose"], description = "Verbose output", defaultValue = false)
+
+    let handler (header, library, output, ns, includes, verbose) = 
+        let options = {
+            Header = header
+            Library = library
+            Output = output
+            Namespace = ns
+            IncludePaths = includes
+            Verbose = verbose
+        }
+        showHeader()
+        showConfiguration options
+        runGeneration options
+        showNextSteps options
+
+    command "generate" {
+        description "Generate F# bindings for a native library"
+        inputs (header, library, output, ns, includes, verbose)
+        setHandler handler
+    }
 
 [<EntryPoint>]
 let main argv =
-    try
-        showHeader()
-
-        match argv with
-        | [| "--help" |] | [| "-?" |] | [| |] ->
-            showUsage()
-            0
-        | _ ->
-            let options = parseArgs argv
-
-            match validateOptions options with
-            | Ok validOptions ->
-                showConfiguration validOptions
-                runGeneration validOptions
-                showNextSteps validOptions
-                0
-            | Error errors ->
-                printLine ""
-                
-                errors |> List.iter showError
-                showUsage()
-                1
-    with
-    | ex ->
-        showError ex.Message
-        1
+    rootCommand argv {
+        description "Farscape: F# Native Library Binding Generator"
+        setHandler id
+        addCommand generateCommand
+    }

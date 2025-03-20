@@ -126,7 +126,7 @@ let showError (message: string) =
 
 let generateCommand = 
     let header = 
-        Input.Option<FileInfo>(["-h"; "--header"], 
+        Input.Option<FileInfo>(["--header"], 
             // Manually edit underlying S.CL option to add validator logic.
             fun o -> 
                 o.Description <- "Path to C++ header file"

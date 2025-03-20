@@ -5,7 +5,6 @@ open System.IO
 open Farscape.Core
 open FSharp.SystemCommandLine
 open System.CommandLine.Invocation
-open System.CommandLine.Help
 
 type CommandOptions = 
     {
@@ -126,7 +125,7 @@ let showError (message: string) =
 
 let generateCommand = 
     let header = 
-        Input.Option<FileInfo>(["--header"], 
+        Input.Option<FileInfo>(["-h"; "--header"], 
             // Manually edit underlying S.CL option to add validator logic.
             fun o -> 
                 o.Description <- "Path to C++ header file"
@@ -163,17 +162,10 @@ let generateCommand =
         setHandler handler
     }
 
-let showHelp (ctx: InvocationContext) =
-    let hc = HelpContext(ctx.HelpBuilder, ctx.Parser.Configuration.RootCommand, System.Console.Out)
-    ctx.HelpBuilder.Write(hc)
-
 [<EntryPoint>]
 let main argv =
     rootCommand argv {
         description "Farscape: F# Native Library Binding Generator"
-        inputs (Input.Context())
-        setHandler showHelp
-        addCommands [ 
-            generateCommand
-        ]
+        setHandler id
+        addCommand generateCommand
     }

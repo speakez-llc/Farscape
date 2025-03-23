@@ -8,7 +8,7 @@ open CodeGenerator
 module BindingGenerator =
 
     type GenerationOptions = {
-        HeaderFile: string
+        HeaderFile: FileInfo
         LibraryName: string
         OutputDirectory: string
         Namespace: string
@@ -42,7 +42,7 @@ module BindingGenerator =
         logVerbose $"Namespace: {options.Namespace}" options.Verbose
 
         logVerbose "Parsing header file..." options.Verbose
-        let declarations = CppParser.parse options.HeaderFile options.IncludePaths options.Verbose
+        let declarations = CppParser.parse options.HeaderFile.FullName options.IncludePaths options.Verbose
 
         logVerbose "Generating F# code..." options.Verbose
         let generatedCode = generateCode declarations options.Namespace options.LibraryName
@@ -57,7 +57,7 @@ module BindingGenerator =
                 ("System.Memory", "4.5.5")
                 ("System.Runtime.CompilerServices.Unsafe", "6.0.0")
             ]
-            HeaderFile = options.HeaderFile
+            HeaderFile = options.HeaderFile.FullName
             LibraryName = options.LibraryName
             IncludePaths = options.IncludePaths
             Verbose = options.Verbose

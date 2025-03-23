@@ -5,16 +5,7 @@ open System.IO
 open Farscape.Core
 open FSharp.SystemCommandLine
 open System.CommandLine.Invocation
-
-type CommandOptions = 
-    {
-        Header: FileInfo
-        Library: string
-        Output: string
-        Namespace: string
-        IncludePaths: string[]
-        Verbose: bool
-    }
+open Farscape.Core.BindingGenerator
 
 let printLine (text: string) =
     Console.WriteLine(text)
@@ -35,51 +26,39 @@ let printHeader (text: string) =
 let showHeader () =
     printHeader "Farscape: F# Native Library Binding Generator"
 
-let showConfiguration (options: CommandOptions) =
+let showConfiguration (options: GenerationOptions) =
     printHeader "Configuration"
     printLine ""
 
     printColorLine "Header File:" ConsoleColor.Yellow
-    printLine $"  {options.Header}"
+    printLine $"  {options.HeaderFile}"
     
     printColorLine "Library Name:" ConsoleColor.Yellow
-    printLine $"  {options.Library}"
+    printLine $"  {options.LibraryName}"
     
     printColorLine "Output Directory:" ConsoleColor.Yellow
-    printLine $"  {options.Output}"
+    printLine $"  {options.OutputDirectory}"
     
     printColorLine "Namespace:" ConsoleColor.Yellow
     printLine $"  {options.Namespace}"
     
     printColorLine "Include Paths:" ConsoleColor.Yellow
-    if options.IncludePaths = [||] then
+    if options.IncludePaths = [] then
         printLine "  None"
     else
         options.IncludePaths
-        |> Array.iter (fun path -> printLine $"  {path}")
+        |> List.iter (fun path -> printLine $"  {path}")
     
     printLine ""
 
-let runGeneration (options: CommandOptions) =
+let runGeneration (options: GenerationOptions) =
     // Show generating message
     printHeader "Generating F# bindings..."
     printLine ""
 
-    let includePaths = options.IncludePaths |> Array.toList
-
-    // Create options
-    let generationOptions = {
-        BindingGenerator.GenerationOptions.HeaderFile = options.Header.FullName
-        BindingGenerator.GenerationOptions.LibraryName = options.Library
-        BindingGenerator.GenerationOptions.OutputDirectory = options.Output
-        BindingGenerator.GenerationOptions.Namespace = options.Namespace
-        BindingGenerator.GenerationOptions.IncludePaths = includePaths
-        BindingGenerator.GenerationOptions.Verbose = options.Verbose
-    }
-
     // Process steps with appropriate messages
     printLine "Starting C++ header parsing..."
-    let declarations = CppParser.parse options.Header.FullName includePaths options.Verbose
+    let declarations = CppParser.parse options.HeaderFile.FullName options.IncludePaths options.Verbose
 
     printLine "Mapping C++ types to F#..."
     System.Threading.Thread.Sleep(500) // Simulating work
@@ -88,7 +67,7 @@ let runGeneration (options: CommandOptions) =
     System.Threading.Thread.Sleep(500) // Simulating work
 
     printLine "Creating project files..."
-    BindingGenerator.generateBindings generationOptions |> ignore
+    BindingGenerator.generateBindings options |> ignore
 
     printLine "Generation complete!"
     printLine ""
@@ -98,10 +77,10 @@ let runGeneration (options: CommandOptions) =
     printLine ""
 
     // Output info
-    printColorLine $"Output: F# bindings were successfully generated in {options.Output}" ConsoleColor.Cyan
+    printColorLine $"Output: F# bindings were successfully generated in {options.OutputDirectory}" ConsoleColor.Cyan
     printLine ""
 
-let showNextSteps (options: CommandOptions) =
+let showNextSteps (options: GenerationOptions) =
     // Show next steps
     printHeader "Next Steps"
     printLine ""
@@ -110,12 +89,12 @@ let showNextSteps (options: CommandOptions) =
     printLine ""
     
     printLine "Build the project:"
-    printLine $"  cd {options.Output}"
+    printLine $"  cd {options.OutputDirectory}"
     printLine "  dotnet build"
     printLine ""
     
     printLine "Use in your own project:"
-    printLine $"  Add a reference to {options.Library}.dll"
+    printLine $"  Add a reference to {options.LibraryName}.dll"
     printLine $"  open {options.Namespace}"
     printLine ""
 
@@ -144,11 +123,11 @@ let generateCommand =
 
     let handler (header, library, output, ns, includes, verbose) = 
         let options = {
-            Header = header
-            Library = library
-            Output = output
+            HeaderFile = header
+            LibraryName = library
+            OutputDirectory = output
             Namespace = ns
-            IncludePaths = includes
+            IncludePaths = includes |> Array.toList
             Verbose = verbose
         }
         showHeader()

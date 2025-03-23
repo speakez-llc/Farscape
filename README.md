@@ -91,27 +91,20 @@ dotnet tool install --global --add-source ./src/Farscape.Cli/nupkg farscape
 
 ```bash
 # Basic usage
-farscape --header path/to/header.h --library libname
+farscape generate --header path/to/header.h --library libname
 
 # With additional options
-farscape --header [path/to/header.h] \
-         --library [libname] \
-         --output ./output \
-         --namespace [MyProject].Bindings \
-         --include-paths /usr/include,/usr/local/include \
-         --verbose
+Farscape.Cli generate [options]
+
+Options:
+  -h, --header <header> (REQUIRED)     Path to C++ header file
+  -l, --library <library> (REQUIRED)   Name of native library to bind to
+  -o, --output <output>                Output directory for generated code [default: ./output]
+  -n, --namespace <namespace>          Namespace for generated code [default: NativeBindings]
+  -i, --include-paths <include-paths>  Additional include paths
+  -v, --verbose                        Verbose output [default: False]
+  -?, -h, --help                       Show help and usage information
 ```
-
-### Command Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--header`, `-h` | Path to the C++ header file (required) |
-| `--library`, `-l` | Name of the native library to bind to (required) |
-| `--output`, `-o` | Output directory for the generated F# project (default: ./output) |
-| `--namespace`, `-n` | Namespace prefix for the generated F# code (default: NativeBindings) |
-| `--include-paths`, `-i` | Additional include paths for C++ header parsing (comma separated) |
-| `--verbose`, `-v` | Enable verbose output |
 
 ## Examples
 
@@ -141,7 +134,7 @@ double multiply(double a, double b);
 Generate F# bindings with:
 
 ```bash
-farscape --header math_lib.h --library mathlib
+farscape generate --header math_lib.h --library mathlib
 ```
 
 The generated F# code will look like:
